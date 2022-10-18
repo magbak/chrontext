@@ -1,0 +1,6 @@
+Fix left join expression pushdowns
+Fix condition that both datapoints and data values are declared within the same BGP.
+Engine should complain otherwise.
+Synchronized queries now require partitioning support even though it might not be present - fix this.
+Also do not project partitioning cols further if they were introduced here
+Exists introductions of TSQ in aggregations and in ordering expressions are not kept.. fix in preparing

@@ -1,0 +1,27 @@
+PREFIX case: <http://example.org/case#>
+PREFIX types: <http://example.org/types#>
+PREFIX otit_swt: <https://github.com/magbak/otit_swt#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+INSERT DATA {
+    case:myWidget1 types:hasSensor case:mySensor1 .
+    case:myWidget1 rdfs:label "myWidget1" .
+    case:myWidget1 types:hasComponent case:mySensor1 .
+    case:myWidget1 types:hasSomething case:mySomething1 .
+    case:myWidget1 types:hasComponent case:mySomething1 .
+    case:myWidget2 types:hasSensor case:mySensor2 .
+    case:myWidget2 rdfs:label "myWidget2" .
+    case:myWidget2 types:hasComponent case:mySensor2 .
+    case:myWidget1 a types:BigWidget .
+    types:BigWidget rdfs:label "BigWidget" .
+    case:myWidget2 a types:SmallWidget .
+    types:SmallWidget rdfs:label "SmallWidget" .
+    case:mySensor1 rdfs:label "ImportantSensor" .
+    case:mySensor2 rdfs:label "OtherImportantSensor" .
+    case:mySensor1 otit_swt:hasTimeseries case:myTimeseries1 .
+    case:myTimeseries1 otit_swt:hasDatatype xsd:unsignedInt .
+    case:mySensor2 otit_swt:hasTimeseries case:myTimeseries2 .
+    case:myTimeseries2 otit_swt:hasDatatype xsd:unsignedInt .
+    case:myTimeseries1 otit_swt:hasExternalId "ts1" .
+    case:myTimeseries2 otit_swt:hasExternalId "ts2" .
+}

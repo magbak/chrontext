@@ -1,0 +1,12 @@
+pub const HAS_TIMESTAMP: &str = "https://github.com/magbak/otit_swt#hasTimestamp";
+pub const HAS_TIMESERIES: &str = "https://github.com/magbak/otit_swt#hasTimeseries";
+pub const HAS_DATA_POINT: &str = "https://github.com/magbak/otit_swt#hasDataPoint";
+pub const HAS_VALUE: &str = "https://github.com/magbak/otit_swt#hasValue";
+pub const HAS_DATATYPE: &str = "https://github.com/magbak/otit_swt#hasDatatype";
+pub const HAS_EXTERNAL_ID: &str = "https://github.com/magbak/otit_swt#hasExternalId";
+pub const DATETIME_AS_NANOS: &str = "https://github.com/magbak/otit_swt#DateTimeAsNanos";
+pub const NANOS_AS_DATETIME: &str = "https://github.com/magbak/otit_swt#NanosAsDateTime";
+pub const DATETIME_AS_SECONDS: &str = "https://github.com/magbak/otit_swt#DateTimeAsSeconds";
+pub const SECONDS_AS_DATETIME: &str = "https://github.com/magbak/otit_swt#SecondsAsDateTime";
+pub const NEST: &str = "https://github.com/magbak/otit_swt#nestAggregation";
+pub const GROUPING_COL: &str = "grouping_col";

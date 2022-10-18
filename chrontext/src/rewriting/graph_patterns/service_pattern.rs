@@ -1,0 +1,32 @@
+use super::StaticQueryRewriter;
+use crate::change_types::ChangeType;
+use crate::query_context::{Context, PathEntry};
+use crate::rewriting::graph_patterns::GPReturn;
+use spargebra::algebra::GraphPattern;
+use spargebra::term::NamedNodePattern;
+
+impl StaticQueryRewriter {
+    pub fn rewrite_service(
+        &mut self,
+        name: &NamedNodePattern,
+        inner: &GraphPattern,
+        silent: &bool,
+        context: &Context,
+    ) -> GPReturn {
+        let mut inner_rewrite = self.rewrite_graph_pattern(
+            inner,
+            &ChangeType::NoChange,
+            &context.extension_with(PathEntry::ServiceInner),
+        );
+        if inner_rewrite.graph_pattern.is_some() {
+            let inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
+            inner_rewrite.with_graph_pattern(GraphPattern::Service {
+                name: name.clone(),
+                inner: Box::new(inner_graph_pattern),
+                silent: silent.clone(),
+            });
+            return inner_rewrite;
+        }
+        panic!("Should never happen")
+    }
+}

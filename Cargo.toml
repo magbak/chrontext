@@ -1,0 +1,7 @@
+[workspace]
+
+members=[
+    "dsl",
+    "chrontext",
+    "arrow_python_utils"
+]
