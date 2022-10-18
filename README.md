@@ -10,7 +10,7 @@ Currently, these tools are volatile works in progress, and should not be used by
 We can make queries in Python. The code assumes that we have a SPARQL-endpoint and an Arrow Flight SQL-endpoint (Dremio) set up. 
 ```python
 import pathlib
-from otit_swt_query import Engine, ArrowFlightSQLDatabase, TimeSeriesTable
+from chrontext_query import Engine, ArrowFlightSQLDatabase, TimeSeriesTable
 
 engine = Engine(OXIGRAPH_QUERY_ENDPOINT)
     tables = [
@@ -27,15 +27,15 @@ arrow_flight_sql_database = ArrowFlightSQLDatabase(host=DREMIO_HOST, port=DREMIO
 engine.set_arrow_flight_sql(arrow_flight_sql_database)
 df = engine.execute_hybrid_query("""
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+PREFIX chrontext:<https://github.com/magbak/chrontext#>
 PREFIX types:<http://example.org/types#>
 SELECT ?w ?s ?t ?v WHERE {
     ?w a types:BigWidget .
     ?w types:hasSensor ?s .
-    ?s otit_swt:hasTimeseries ?ts .
-    ?ts otit_swt:hasDataPoint ?dp .
-    ?dp otit_swt:hasTimestamp ?t .
-    ?dp otit_swt:hasValue ?v .
+    ?s chrontext:hasTimeseries ?ts .
+    ?ts chrontext:hasDataPoint ?dp .
+    ?dp chrontext:hasTimestamp ?t .
+    ?dp chrontext:hasValue ?v .
     FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 200) .
 }
     """)
@@ -44,7 +44,7 @@ SELECT ?w ?s ?t ?v WHERE {
 ## Mapping
 We can easily map DataFrames to RDF-graphs using the Python library. 
 ```python
-from otit_swt_mapper import Mapping
+from chrontext_mapper import Mapping
 #We use polars dataframes instead of pandas dataframes. The api is pretty similar.
 import polars as pl
 
@@ -74,15 +74,15 @@ Results in:
  <http://example.net/ns#myObject> <http://example.net/ns#hasValue> "2"^^<http://www.w3.org/2001/XMLSchema#long>]
 ```
 
-An example mapping is provided in [this jupyter notebook](https://github.com/magbak/otit_swt/tree/main/doc/mapping.ipynb).
+An example mapping is provided in [this jupyter notebook](https://github.com/magbak/chrontext/tree/main/doc/mapping.ipynb).
 
-The Python API is documented [here](https://github.com/magbak/otit_swt/tree/main/doc/python_mapper_api.md)
+The Python API is documented [here](https://github.com/magbak/chrontext/tree/main/doc/python_mapper_api.md)
 
 ## Installing pre-built wheels
-From the latest [release](https://github.com/magbak/otit_swt/releases), copy the appropriate .whl-file for your system, then run:
+From the latest [release](https://github.com/magbak/chrontext/releases), copy the appropriate .whl-file for your system, then run:
 ```shell
-pip install https://github.com/magbak/otit_swt/releases/download/v0.1.5/otit_swt_mapper-0.1.12-cp310-cp310-manylinux_2_31_x86_64.whl
-pip install https://github.com/magbak/otit_swt/releases/download/v0.1.5/otit_swt_query-0.1.12-cp310-cp310-manylinux_2_31_x86_64.whl
+pip install https://github.com/magbak/chrontext/releases/download/v0.1.5/chrontext_mapper-0.1.12-cp310-cp310-manylinux_2_31_x86_64.whl
+pip install https://github.com/magbak/chrontext/releases/download/v0.1.5/chrontext_query-0.1.12-cp310-cp310-manylinux_2_31_x86_64.whl
 ```
 
 All code is licensed to [Prediktor AS](https://www.prediktor.com/) under the Apache 2.0 license unless otherwise noted, and has been financed by [The Research Council of Norway](https://www.forskningsradet.no/en/) (grant no. 316656) and [Prediktor AS](https://www.prediktor.com/) as part of a PhD Degree.  

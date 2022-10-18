@@ -9,7 +9,7 @@ use spargebra::Query;
 #[test]
 fn test_simple_query() {
     let sparql = r#"
-    PREFIX qry:<https://github.com/magbak/otit_swt#>
+    PREFIX qry:<https://github.com/magbak/chrontext#>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
         ?var2 qry:hasTimeseries ?ts .
@@ -26,9 +26,9 @@ fn test_simple_query() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-     ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-     ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-     ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts .
+     ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+     ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
       }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, expected_query);
@@ -38,7 +38,7 @@ fn test_simple_query() {
 fn test_filtered_query() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/otit_swt#>
+    PREFIX qry:<https://github.com/magbak/chrontext#>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
         ?var2 qry:hasTimeseries ?ts .
@@ -56,9 +56,9 @@ fn test_filtered_query() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-     ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-     ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-     ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts .
+     ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+     ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
       }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, expected_query);
@@ -68,7 +68,7 @@ fn test_filtered_query() {
 fn test_complex_expression_filter() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/otit_swt#>
+    PREFIX qry:<https://github.com/magbak/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
@@ -89,9 +89,9 @@ fn test_complex_expression_filter() {
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     ?var2 <https://example.com/hasPropertyValue> ?pv .
-    ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-    ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts .
+    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
     FILTER(?pv) }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, expected_query);
@@ -101,7 +101,7 @@ fn test_complex_expression_filter() {
 fn test_complex_expression_filter_projection() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/otit_swt#>
+    PREFIX qry:<https://github.com/magbak/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
@@ -122,9 +122,9 @@ fn test_complex_expression_filter_projection() {
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 ?pv WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     ?var2 <https://example.com/hasPropertyValue> ?pv .
-    ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-    ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts . }
+    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, expected_query);
@@ -134,7 +134,7 @@ fn test_complex_expression_filter_projection() {
 fn test_complex_nested_expression_filter() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/otit_swt#>
+    PREFIX qry:<https://github.com/magbak/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
@@ -155,9 +155,9 @@ fn test_complex_nested_expression_filter() {
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 ?pv WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     ?var2 <https://example.com/hasPropertyValue> ?pv .
-    ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-    ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts .
+    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
      }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, expected_query);
@@ -167,7 +167,7 @@ fn test_complex_nested_expression_filter() {
 fn test_option_expression_filter_projection() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/otit_swt#>
+    PREFIX qry:<https://github.com/magbak/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 ?pv ?t ?val WHERE {
         ?var1 a ?var2 .
@@ -191,9 +191,9 @@ fn test_option_expression_filter_projection() {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     OPTIONAL {
     ?var2 <https://example.com/hasPropertyValue> ?pv .
-    ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-    ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts .
+    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
     FILTER(!(?pv))
     }
      }"#;
@@ -205,7 +205,7 @@ fn test_option_expression_filter_projection() {
 fn test_union_expression() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/otit_swt#>
+    PREFIX qry:<https://github.com/magbak/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 ?pv WHERE {
         ?var1 a ?var2 .
@@ -239,16 +239,16 @@ fn test_union_expression() {
         OPTIONAL {
             {
               ?var2 <https://example.com/hasPropertyValue> ?pv .
-              ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-              ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-              ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts .
+              ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+              ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+              ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
               FILTER(!?pv)
             }
             UNION {
               ?var2 <https://example.com/hasPropertyValue> ?pv .
-              ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_1 .
-              ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_1 .
-              ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts .
+              ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .
+              ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 .
+              ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
               FILTER(?pv)
             }
         }
@@ -262,7 +262,7 @@ fn test_union_expression() {
 fn test_bind_expression() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/otit_swt#>
+    PREFIX qry:<https://github.com/magbak/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 ?val3 WHERE {
         ?var1 a ?var2 .
@@ -285,12 +285,12 @@ fn test_bind_expression() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_datatype_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-    ?ts1 <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-    ?ts1 <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-    ?var1 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts1 .
-    ?ts2 <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_1 .
-    ?ts2 <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_1 .
-    ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?ts2 . }
+    ?ts1 <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts1 <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?var1 <https://github.com/magbak/chrontext#hasTimeseries> ?ts1 .
+    ?ts2 <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .
+    ?ts2 <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 .
+    ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts2 . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, expected_query);
@@ -300,15 +300,15 @@ fn test_bind_expression() {
 fn test_fix_dropped_triple() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s ?t ?v WHERE {
         ?w a types:BigWidget .
         ?w types:hasSensor ?s .
-        ?s otit_swt:hasTimeseries ?ts .
-        ?ts otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasTimestamp ?t .
-        ?dp otit_swt:hasValue ?v .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 50) .
     }"#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
@@ -318,14 +318,14 @@ fn test_fix_dropped_triple() {
     let (static_rewrite, time_series_queries) = rewriter.rewrite_query(preprocessed_query).unwrap();
     let expected_str = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s ?ts_datatype_0 ?ts_external_id_0 WHERE {
         ?w a types:BigWidget .
         ?w types:hasSensor ?s .
-        ?ts otit_swt:hasExternalId ?ts_external_id_0 .
-        ?ts otit_swt:hasDatatype ?ts_datatype_0 .
-        ?s otit_swt:hasTimeseries ?ts .
+        ?ts chrontext:hasExternalId ?ts_external_id_0 .
+        ?ts chrontext:hasDatatype ?ts_datatype_0 .
+        ?s chrontext:hasTimeseries ?ts .
     }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, expected_query);
@@ -375,7 +375,7 @@ fn test_fix_dropped_triple() {
 fn test_property_path_expression() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/otit_swt#>
+    PREFIX qry:<https://github.com/magbak/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 ?val3 WHERE {
         ?var1 a ?var2 .
@@ -396,12 +396,12 @@ fn test_property_path_expression() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_datatype_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-     ?blank_replacement_0 <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-     ?blank_replacement_0 <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-     ?var1 <https://github.com/magbak/otit_swt#hasTimeseries> ?blank_replacement_0 .
-     ?blank_replacement_1 <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_1 .
-     ?blank_replacement_1 <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_1 .
-     ?var2 <https://github.com/magbak/otit_swt#hasTimeseries> ?blank_replacement_1 . }
+     ?blank_replacement_0 <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+     ?blank_replacement_0 <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+     ?var1 <https://github.com/magbak/chrontext#hasTimeseries> ?blank_replacement_0 .
+     ?blank_replacement_1 <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .
+     ?blank_replacement_1 <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 .
+     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?blank_replacement_1 . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     let expected_time_series_queries = vec![
@@ -490,14 +490,14 @@ fn test_property_path_expression() {
 fn test_having_query() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
-        ?s otit_swt:hasTimeseries ?ts .
-        ?ts otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasTimestamp ?t .
-        ?dp otit_swt:hasValue ?v .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
         BIND(FLOOR(seconds(?t) / 5.0) as ?second_5)
         BIND(minutes(?t) AS ?minute)
         BIND(hours(?t) AS ?hour)
@@ -516,9 +516,9 @@ fn test_having_query() {
     let expected_str = r#"
     SELECT ?w ?ts_datatype_0 ?ts_external_id_0 WHERE {
     ?w <http://example.org/types#hasSensor> ?s .
-    ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-    ?s <https://github.com/magbak/otit_swt#hasTimeseries> ?ts .
+    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
     }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(expected_query, static_rewrite);
@@ -529,15 +529,15 @@ fn test_having_query() {
 fn test_exists_query() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s WHERE {
         ?w types:hasSensor ?s .
         FILTER EXISTS {SELECT ?s WHERE {
-            ?s otit_swt:hasTimeseries ?ts .
-            ?ts otit_swt:hasDataPoint ?dp .
-            ?dp otit_swt:hasTimestamp ?t .
-            ?dp otit_swt:hasValue ?v .
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
             FILTER(?v > 300)}}
     }
     "#;
@@ -550,9 +550,9 @@ fn test_exists_query() {
     SELECT ?w ?s ?ts ?ts_datatype_0 ?ts_external_id_0 WHERE {
     ?w <http://example.org/types#hasSensor> ?s .
     OPTIONAL {
-            ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-            ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-            ?s <https://github.com/magbak/otit_swt#hasTimeseries> ?ts . } }
+            ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+            ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+            ?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts . } }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(expected_query, static_rewrite);
@@ -563,11 +563,11 @@ fn test_exists_query() {
 fn test_filter_lost_bug() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit:<https://github.com/magbak/otit_swt#>
-    PREFIX wp:<https://github.com/magbak/otit_swt/windpower_example#>
+    PREFIX ct:<https://github.com/magbak/chrontext#>
+    PREFIX wp:<https://github.com/magbak/chrontext/windpower_example#>
     PREFIX rdfs:<http://www.w3.org/2000/01/rdf-schema#>
     PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX rds:<https://github.com/magbak/otit_swt/rds_power#>
+    PREFIX rds:<https://github.com/magbak/chrontext/rds_power#>
     SELECT ?site_label ?wtur_label ?ts ?val ?t WHERE {
     ?site a rds:Site .
     ?site rdfs:label ?site_label .
@@ -576,11 +576,11 @@ fn test_filter_lost_bug() {
     ?wtur rds:hasFunctionalAspectNode ?wtur_asp .
     ?wtur rds:hasFunctionalAspect ?gensys_asp .
     ?gensys rds:hasFunctionalAspectNode ?gensys_asp .
-    ?gensys otit:hasTimeseries ?ts .
+    ?gensys ct:hasTimeseries ?ts .
     ?ts rdfs:label "Production" .
-    ?ts otit:hasDataPoint ?dp .
-    ?dp otit:hasValue ?val .
-    ?dp otit:hasTimestamp ?t .
+    ?ts ct:hasDataPoint ?dp .
+    ?dp ct:hasValue ?val .
+    ?dp ct:hasTimestamp ?t .
     FILTER(?wtur_label = "A1" && ?t > "2022-06-17T08:46:53"^^xsd:dateTime) .
 }"#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
@@ -591,16 +591,16 @@ fn test_filter_lost_bug() {
 
     let expected_str = r#"
     SELECT ?site_label ?wtur_label ?ts ?ts_datatype_0 ?ts_external_id_0 WHERE {
-    ?site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://github.com/magbak/otit_swt/rds_power#Site> .
+    ?site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://github.com/magbak/chrontext/rds_power#Site> .
     ?site <http://www.w3.org/2000/01/rdf-schema#label> ?site_label .
-    ?site <https://github.com/magbak/otit_swt/rds_power#hasFunctionalAspect> ?wtur_asp .
+    ?site <https://github.com/magbak/chrontext/rds_power#hasFunctionalAspect> ?wtur_asp .
     ?wtur_asp <http://www.w3.org/2000/01/rdf-schema#label> ?wtur_label .
-    ?wtur <https://github.com/magbak/otit_swt/rds_power#hasFunctionalAspectNode> ?wtur_asp .
-    ?wtur <https://github.com/magbak/otit_swt/rds_power#hasFunctionalAspect> ?gensys_asp .
-    ?gensys <https://github.com/magbak/otit_swt/rds_power#hasFunctionalAspectNode> ?gensys_asp .
-    ?ts <https://github.com/magbak/otit_swt#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/otit_swt#hasDatatype> ?ts_datatype_0 .
-    ?gensys <https://github.com/magbak/otit_swt#hasTimeseries> ?ts .
+    ?wtur <https://github.com/magbak/chrontext/rds_power#hasFunctionalAspectNode> ?wtur_asp .
+    ?wtur <https://github.com/magbak/chrontext/rds_power#hasFunctionalAspect> ?gensys_asp .
+    ?gensys <https://github.com/magbak/chrontext/rds_power#hasFunctionalAspectNode> ?gensys_asp .
+    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?gensys <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
     ?ts <http://www.w3.org/2000/01/rdf-schema#label> "Production" .
     FILTER((?wtur_label = "A1"))
     }"#;

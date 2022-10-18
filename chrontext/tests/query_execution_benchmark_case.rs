@@ -88,11 +88,11 @@ async fn test_should_pushdown_query(
     let _ = use_logger;
     let _ = with_testdata.await;
     let query = r#"PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-PREFIX otit:<https://github.com/magbak/otit_swt#>
-PREFIX wp:<https://github.com/magbak/otit_swt/windpower_example#>
+PREFIX ct:<https://github.com/magbak/chrontext#>
+PREFIX wp:<https://github.com/magbak/chrontext/windpower_example#>
 PREFIX rdfs:<http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rds:<https://github.com/magbak/otit_swt/rds_power#>
+PREFIX rds:<https://github.com/magbak/chrontext/rds_power#>
 SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val) as ?avg_val) WHERE {
     ?site a rds:Site .
     ?site rdfs:label ?site_label .
@@ -106,11 +106,11 @@ SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val) as 
     ?gensys rds:hasFunctionalAspect ?generator_asp .
     ?generator rds:hasFunctionalAspectNode ?generator_asp .
     ?generator a rds:GAA .
-    ?generator otit:hasTimeseries ?ts .
+    ?generator ct:hasTimeseries ?ts .
     ?ts rdfs:label "Production" .
-    ?ts otit:hasDataPoint ?dp .
-    ?dp otit:hasValue ?val .
-    ?dp otit:hasTimestamp ?t .
+    ?ts ct:hasDataPoint ?dp .
+    ?dp ct:hasValue ?val .
+    ?dp ct:hasTimestamp ?t .
     BIND(10 * FLOOR(minutes(?t) / 10.0) as ?minute_10)
     BIND(hours(?t) AS ?hour)
     BIND(day(?t) AS ?day)
@@ -181,11 +181,11 @@ async fn test_multi_should_pushdown_query(
     let _ = use_logger;
     let _ = with_testdata.await;
     let query = r#"PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-PREFIX otit:<https://github.com/magbak/otit_swt#>
-PREFIX wp:<https://github.com/magbak/otit_swt/windpower_example#>
+PREFIX ct:<https://github.com/magbak/chrontext#>
+PREFIX wp:<https://github.com/magbak/chrontext/windpower_example#>
 PREFIX rdfs:<http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rds:<https://github.com/magbak/otit_swt/rds_power#>
+PREFIX rds:<https://github.com/magbak/chrontext/rds_power#>
 SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val_prod) as ?val_prod_avg) (AVG(?val_dir) as ?val_dir_avg) (AVG(?val_speed) as ?val_speed_avg) WHERE {
     ?site a rds:Site .
     ?site rdfs:label ?site_label .
@@ -202,21 +202,21 @@ SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val_prod
     ?wtur rds:hasFunctionalAspect ?weather_asp .
     ?weather rds:hasFunctionalAspectNode ?weather_asp .
     ?weather a rds:LE .
-    ?weather otit:hasTimeseries ?ts_speed .
-    ?ts_speed otit:hasDataPoint ?dp_speed .
-    ?dp_speed otit:hasValue ?val_speed .
-    ?dp_speed otit:hasTimestamp ?t .
+    ?weather ct:hasTimeseries ?ts_speed .
+    ?ts_speed ct:hasDataPoint ?dp_speed .
+    ?dp_speed ct:hasValue ?val_speed .
+    ?dp_speed ct:hasTimestamp ?t .
     ?ts_speed rdfs:label "Windspeed" .
-    ?weather otit:hasTimeseries ?ts_dir .
-    ?ts_dir otit:hasDataPoint ?dp_dir .
-    ?dp_dir otit:hasValue ?val_dir .
-    ?dp_dir otit:hasTimestamp ?t .
+    ?weather ct:hasTimeseries ?ts_dir .
+    ?ts_dir ct:hasDataPoint ?dp_dir .
+    ?dp_dir ct:hasValue ?val_dir .
+    ?dp_dir ct:hasTimestamp ?t .
     ?ts_dir rdfs:label "WindDirection" .
-    ?generator otit:hasTimeseries ?ts_prod .
+    ?generator ct:hasTimeseries ?ts_prod .
     ?ts_prod rdfs:label "Production" .
-    ?ts_prod otit:hasDataPoint ?dp_prod .
-    ?dp_prod otit:hasValue ?val_prod .
-    ?dp_prod otit:hasTimestamp ?t .
+    ?ts_prod ct:hasDataPoint ?dp_prod .
+    ?dp_prod ct:hasValue ?val_prod .
+    ?dp_prod ct:hasTimestamp ?t .
     BIND(10 * FLOOR(minutes(?t) / 10.0) as ?minute_10)
     BIND(hours(?t) AS ?hour)
     BIND(day(?t) AS ?day)

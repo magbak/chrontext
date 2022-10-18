@@ -49,13 +49,7 @@ jobs:
         rustup toolchain install nightly-2022-09-13
         rustup default nightly-2022-09-13
 
-    - name: Build query wheels
-      run: |
-        source ../.venv/bin/activate
-        maturin build
-      working-directory: ./py_chrontext
-
-    - name: Build mapper wheels
+    - name: Build wheels
       run: |
         source ../.venv/bin/activate
         maturin build
@@ -66,5 +60,4 @@ jobs:
       with:
         tag_name: ${{ needs.create_release.outputs.tag-name }}
         files: |
-          ./py_chrontext/target/wheels/*.whl
           ./py_chrontext/target/wheels/*.whl

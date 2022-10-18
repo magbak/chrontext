@@ -1,6 +1,6 @@
 PREFIX case: <http://example.org/case#>
 PREFIX types: <http://example.org/types#>
-PREFIX otit_swt: <https://github.com/magbak/otit_swt#>
+PREFIX chrontext: <https://github.com/magbak/chrontext#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 INSERT DATA {
     case:myWidget1 types:hasSensor case:mySensor1 .
@@ -8,10 +8,10 @@ INSERT DATA {
     case:myWidget2 types:hasSensor case:mySensor2 .
     case:myWidget1 a types:BigWidget .
     case:myWidget2 a types:SmallWidget .
-    case:mySensor1 otit_swt:hasTimeseries case:myTimeseries1 .
-    case:myTimeseries1 otit_swt:hasDatatype xsd:unsignedInt .
-    case:mySensor2 otit_swt:hasTimeseries case:myTimeseries2 .
-    case:myTimeseries2 otit_swt:hasDatatype xsd:unsignedInt .
-    case:myTimeseries1 otit_swt:hasExternalId "ts1" .
-    case:myTimeseries2 otit_swt:hasExternalId "ts2" .
+    case:mySensor1 chrontext:hasTimeseries case:myTimeseries1 .
+    case:myTimeseries1 chrontext:hasDatatype xsd:unsignedInt .
+    case:mySensor2 chrontext:hasTimeseries case:myTimeseries2 .
+    case:myTimeseries2 chrontext:hasDatatype xsd:unsignedInt .
+    case:myTimeseries1 chrontext:hasExternalId "ts1" .
+    case:myTimeseries2 chrontext:hasExternalId "ts2" .
 }

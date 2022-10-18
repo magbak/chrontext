@@ -85,8 +85,8 @@ async fn test_static_query(#[future] with_testdata: (), use_logger: ()) {
     let _ = with_testdata.await;
     let query = parse_sparql_select_query(
         r#"
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
-    SELECT * WHERE {?a otit_swt:hasTimeseries ?b }
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    SELECT * WHERE {?a chrontext:hasTimeseries ?b }
     "#,
     )
     .unwrap();
@@ -131,15 +131,15 @@ async fn test_simple_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s ?t ?v WHERE {
         ?w a types:BigWidget .
         ?w types:hasSensor ?s .
-        ?s otit_swt:hasTimeseries ?ts .
-        ?ts otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasTimestamp ?t .
-        ?dp otit_swt:hasValue ?v .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 200) .
     }
     "#;
@@ -177,21 +177,21 @@ async fn test_complex_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w1 ?w2 ?t ?v1 ?v2 WHERE {
         ?w1 a types:BigWidget .
         ?w2 a types:SmallWidget .
         ?w1 types:hasSensor ?s1 .
         ?w2 types:hasSensor ?s2 .
-        ?s1 otit_swt:hasTimeseries ?ts1 .
-        ?s2 otit_swt:hasTimeseries ?ts2 .
-        ?ts1 otit_swt:hasDataPoint ?dp1 .
-        ?ts2 otit_swt:hasDataPoint ?dp2 .
-        ?dp1 otit_swt:hasTimestamp ?t .
-        ?dp2 otit_swt:hasTimestamp ?t .
-        ?dp1 otit_swt:hasValue ?v1 .
-        ?dp2 otit_swt:hasValue ?v2 .
+        ?s1 chrontext:hasTimeseries ?ts1 .
+        ?s2 chrontext:hasTimeseries ?ts2 .
+        ?ts1 chrontext:hasDataPoint ?dp1 .
+        ?ts2 chrontext:hasDataPoint ?dp2 .
+        ?dp1 chrontext:hasTimestamp ?t .
+        ?dp2 chrontext:hasTimestamp ?t .
+        ?dp1 chrontext:hasValue ?v1 .
+        ?dp2 chrontext:hasValue ?v2 .
         FILTER(?t > "2022-06-01T08:46:55"^^xsd:dateTime && ?v1 < ?v2) .
     }
     "#;
@@ -229,14 +229,14 @@ async fn test_pushdown_group_by_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
-        ?s otit_swt:hasTimeseries ?ts .
-        ?ts otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasTimestamp ?t .
-        ?dp otit_swt:hasValue ?v .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime) .
     } GROUP BY ?w
     "#;
@@ -278,14 +278,14 @@ async fn test_pushdown_group_by_second_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
-        ?s otit_swt:hasTimeseries ?ts .
-        ?ts otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasTimestamp ?t .
-        ?dp otit_swt:hasValue ?v .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
         BIND(seconds(?t) as ?second)
         BIND(minutes(?t) AS ?minute)
         BIND(hours(?t) AS ?hour)
@@ -333,14 +333,14 @@ async fn test_pushdown_group_by_second_having_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (CONCAT(?year, "-", ?month, "-", ?day, "-", ?hour, "-", ?minute, "-", (?second_5*5)) as ?period) (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
-        ?s otit_swt:hasTimeseries ?ts .
-        ?ts otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasTimestamp ?t .
-        ?dp otit_swt:hasValue ?v .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
         BIND(xsd:integer(FLOOR(seconds(?t) / 5.0)) as ?second_5)
         BIND(minutes(?t) AS ?minute)
         BIND(hours(?t) AS ?hour)
@@ -389,14 +389,14 @@ async fn test_pushdown_group_by_concat_agg_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?seconds_5 (GROUP_CONCAT(?v ; separator="-") as ?cc) WHERE {
         ?w types:hasSensor ?s .
-        ?s otit_swt:hasTimeseries ?ts .
-        ?ts otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasTimestamp ?t .
-        ?dp otit_swt:hasValue ?v .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
         BIND(xsd:integer(FLOOR(seconds(?t) / 5.0)) as ?seconds_5)
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
     } GROUP BY ?w ?seconds_5
@@ -439,14 +439,14 @@ async fn test_pushdown_groupby_exists_something_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?seconds_3 (AVG(?v) as ?mean) WHERE {
         ?w types:hasSensor ?s .
-        ?s otit_swt:hasTimeseries ?ts .
-        ?ts otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasTimestamp ?t .
-        ?dp otit_swt:hasValue ?v .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
         BIND(xsd:integer(FLOOR(seconds(?t) / 3.0)) as ?seconds_3)
         FILTER EXISTS {SELECT ?w WHERE {?w types:hasSomething ?smth}}
     } GROUP BY ?w ?seconds_3
@@ -489,15 +489,15 @@ async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s WHERE {
         ?w types:hasSensor ?s .
         FILTER EXISTS {SELECT ?s WHERE {
-            ?s otit_swt:hasTimeseries ?ts .
-            ?ts otit_swt:hasDataPoint ?dp .
-            ?dp otit_swt:hasTimestamp ?t .
-            ?dp otit_swt:hasValue ?v .
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
             FILTER(?v > 300)}}
     }
     "#;
@@ -539,15 +539,15 @@ async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s WHERE {
         ?w types:hasSensor ?s .
         FILTER EXISTS {SELECT ?s WHERE {
-            ?s otit_swt:hasTimeseries ?ts .
-            ?ts otit_swt:hasDataPoint ?dp .
-            ?dp otit_swt:hasTimestamp ?t .
-            ?dp otit_swt:hasValue ?v .
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
             FILTER(?v < 300)}
             GROUP BY ?s
             HAVING (SUM(?v) >= 1000)
@@ -592,15 +592,15 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s WHERE {
         ?w types:hasSensor ?s .
         FILTER NOT EXISTS {SELECT ?s WHERE {
-            ?s otit_swt:hasTimeseries ?ts .
-            ?ts otit_swt:hasDataPoint ?dp .
-            ?dp otit_swt:hasTimestamp ?t .
-            ?dp otit_swt:hasValue ?v .
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
             FILTER(?v < 300)}
             GROUP BY ?s
             HAVING (SUM(?v) <= 1000)
@@ -645,10 +645,10 @@ async fn test_path_group_by_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (MAX(?v) as ?max_v) WHERE {
-        ?w types:hasSensor/otit_swt:hasTimeseries/otit_swt:hasDataPoint/otit_swt:hasValue ?v .}
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint/chrontext:hasValue ?v .}
         GROUP BY ?w
         ORDER BY ASC(?max_v)
     "#;
@@ -686,11 +686,11 @@ async fn test_optional_clause_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v ?greater WHERE {
-        ?w types:hasSensor/otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasValue ?v .
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
         OPTIONAL {
         BIND(?v>300 as ?greater)
         FILTER(?greater)
@@ -731,13 +731,13 @@ async fn test_minus_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v WHERE {
-        ?w types:hasSensor/otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasValue ?v .
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
         MINUS {
-        ?dp otit_swt:hasValue ?v .
+        ?dp chrontext:hasValue ?v .
         FILTER(?v > 300)
         }
     }
@@ -780,11 +780,11 @@ async fn test_in_expression_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v WHERE {
-        ?w types:hasSensor/otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasValue ?v .
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
         FILTER(?v IN ((300+4), (304-3), 307))
     }
     "#;
@@ -822,11 +822,11 @@ async fn test_values_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v WHERE {
-        ?w types:hasSensor/otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasValue ?v .
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
         VALUES ?v2 { 301 304 307 }
         FILTER(?v = ?v2)
     }
@@ -865,11 +865,11 @@ async fn test_if_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (IF(?v>300,?v,300) as ?v_with_min) WHERE {
-        ?w types:hasSensor/otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasValue ?v .
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
     }
     "#;
     let df = engine
@@ -911,11 +911,11 @@ async fn test_distinct_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT DISTINCT ?w (IF(?v>300,?v,300) as ?v_with_min) WHERE {
-        ?w types:hasSensor/otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasValue ?v .
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
     }
     "#;
     let df = engine
@@ -952,17 +952,17 @@ async fn test_union_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v WHERE {
         { ?w a types:BigWidget .
-        ?w types:hasSensor/otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasValue ?v .
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
         FILTER(?v > 100) }
         UNION {
             ?w a types:SmallWidget .
-            ?w types:hasSensor/otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp .
-            ?dp otit_swt:hasValue ?v .
+            ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasValue ?v .
             FILTER(?v < 100)
         }
     }
@@ -1007,16 +1007,16 @@ async fn test_coalesce_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?s1 ?t1 ?v1 ?v2 (COALESCE(?v2, ?v1) as ?c) WHERE {
-        ?s1 otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp1 .
-        ?dp1 otit_swt:hasValue ?v1 .
-        ?dp1 otit_swt:hasTimestamp ?t1 .
+        ?s1 chrontext:hasTimeseries/chrontext:hasDataPoint ?dp1 .
+        ?dp1 chrontext:hasValue ?v1 .
+        ?dp1 chrontext:hasTimestamp ?t1 .
         OPTIONAL {
-        ?s1 otit_swt:hasTimeseries/otit_swt:hasDataPoint ?dp2 .
-        ?dp2 otit_swt:hasValue ?v2 .
-        ?dp2 otit_swt:hasTimestamp ?t2 .
+        ?s1 chrontext:hasTimeseries/chrontext:hasDataPoint ?dp2 .
+        ?dp2 chrontext:hasValue ?v2 .
+        ?dp2 chrontext:hasTimestamp ?t2 .
         FILTER(seconds(?t2) >= (seconds(?t1) - 1) && seconds(?t2) <= (seconds(?t1) + 1) && ?v2 > ?v1)
         }
     }

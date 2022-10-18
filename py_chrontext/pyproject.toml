@@ -1,5 +1,5 @@
 [project]
-name = "otit_swt_query"
+name = "chrontext"
 dependencies = ["rdflib==6.2.0", "polars==0.13.62", "pyarrow>=4.0.*", "pandas"]
 
 [build-system]

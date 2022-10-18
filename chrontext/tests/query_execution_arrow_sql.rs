@@ -321,15 +321,15 @@ async fn test_simple_hybrid_query(
     let db = ts_sql_db(timeseries_table).await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+    PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s ?t ?v WHERE {
         ?w a types:BigWidget .
         ?w types:hasSensor ?s .
-        ?s otit_swt:hasTimeseries ?ts .
-        ?ts otit_swt:hasDataPoint ?dp .
-        ?dp otit_swt:hasTimestamp ?t .
-        ?dp otit_swt:hasValue ?v .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 200) .
     }
     "#;

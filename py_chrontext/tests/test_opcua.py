@@ -96,15 +96,15 @@ def test_simplified_opcua_case(opcua_server, oxigraph_testdata):
     print("Set backend")
     df = engine.execute_hybrid_query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-        PREFIX otit_swt:<https://github.com/magbak/otit_swt#>
+        PREFIX chrontext:<https://github.com/magbak/chrontext#>
         PREFIX types:<http://example.org/types#>
         SELECT ?w ?s ?mytype ?t ?v WHERE {
             ?w a ?mytype .
             ?w types:hasSensor ?s .
-            ?s otit_swt:hasTimeseries ?ts .
-            ?ts otit_swt:hasDataPoint ?dp .
-            ?dp otit_swt:hasTimestamp ?t .
-            ?dp otit_swt:hasValue ?v .
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
             FILTER(?t < "2022-08-17T16:46:53"^^xsd:dateTime && ?v > 150.0) .
         }
         """)
