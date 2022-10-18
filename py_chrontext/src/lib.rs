@@ -265,7 +265,7 @@ impl TimeSeriesTable {
 }
 
 #[pymodule]
-fn otit_swt_query(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<Engine>()?;
     m.add_class::<TimeSeriesTable>()?;
     m.add_class::<ArrowFlightSQLDatabase>()?;
