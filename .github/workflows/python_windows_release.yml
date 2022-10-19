@@ -63,7 +63,7 @@ jobs:
         ../venv/Scripts/activate
         set OPENSSL_DIR="D:/a/vcpkg/installed/x64-windows-static"
         set VCPKGRS_DYNAMIC=1
-        python -m maturin build
+        maturin build
       working-directory: ./py_chrontext
 
     - name: Release
