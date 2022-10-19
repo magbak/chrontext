@@ -49,9 +49,17 @@ jobs:
         rustup toolchain install nightly-2022-09-13
         rustup default nightly-2022-09-13
 
+    #openssl-fix from https://stackoverflow.com/a/61921362
     - name: Build wheels
       run: |
         ../venv/Scripts/activate
+        git clone https://github.com/microsoft/vcpkg
+        vcpkg 
+        vcpkg/bootstrap-vcpkg.bat
+        vcpkg/vcpkg.exe install openssl-windows:x64-windows
+        vcpkg/vckpg.exe install openssl:x64-windows-static
+        vcpkg/vcpkg.exe integrate install
+        set VCPKGRS_DYNAMIC=1
         maturin build
       working-directory: ./py_chrontext
 
