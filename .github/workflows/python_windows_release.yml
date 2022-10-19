@@ -1,4 +1,4 @@
-name: Release tag
+name: Release tag on windows
 
 on:
   push:
@@ -49,17 +49,21 @@ jobs:
         rustup toolchain install nightly-2022-09-13
         rustup default nightly-2022-09-13
 
-    #openssl-fix from https://stackoverflow.com/a/61921362
+      #openssl-fix from https://stackoverflow.com/a/61921362
+    - name: Fix openssl
+      run: |
+        git clone https://github.com/microsoft/vcpkg
+        .\vcpkg\bootstrap-vcpkg.bat
+        .\vcpkg\vcpkg install openssl-windows:x64-windows
+        .\vcpkg\vckpg install openssl:x64-windows-static
+      working-directory: .
+
     - name: Build wheels
       run: |
         ../venv/Scripts/activate
-        git clone https://github.com/microsoft/vcpkg 
-        vcpkg/bootstrap-vcpkg.bat
-        vcpkg/vcpkg.exe install openssl-windows:x64-windows
-        vcpkg/vckpg.exe install openssl:x64-windows-static
-        vcpkg/vcpkg.exe integrate install
+        set OPENSSL_DIR="D:/a/vcpkg/installed/x64-windows-static"
         set VCPKGRS_DYNAMIC=1
-        maturin build
+        python -m maturin build
       working-directory: ./py_chrontext
 
     - name: Release
