@@ -25,10 +25,14 @@ jobs:
 
   build_release:
     name: Build release
-    runs-on: ubuntu-latest
+    runs-on: '${{ matrix.os }}'
     needs: create_release
     strategy:
           matrix:
+            include:
+              - os: macos-latest
+              - os: ubuntu-latest
+              - os: windows-latest
             python-version: ['3.8', '3.9', '3.10']
     steps:
     - uses: actions/checkout@v3
