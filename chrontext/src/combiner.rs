@@ -206,7 +206,7 @@ impl Combiner {
                 }
 
                 let mut output_lf =
-                    concat(vec![left_df.lazy(), right_df.lazy()], true).expect("Concat error");
+                    concat(vec![left_df.lazy(), right_df.lazy()], true, true).expect("Concat error");
                 output_lf = output_lf.drop_columns(&[&left_join_distinct_column]);
                 output_lf = output_lf
                     .collect()
@@ -271,7 +271,7 @@ impl Combiner {
                 }
                 columns.extend(left_columns.drain());
 
-                let output_lf = concat(vec![left_lf, right_lf], true).expect("Concat problem");
+                let output_lf = concat(vec![left_lf, right_lf], true, true).expect("Concat problem");
                 output_lf
                     .unique(None, UniqueKeepStrategy::First)
                     .collect()

@@ -13,6 +13,7 @@ use crate::timeseries_query::TimeSeriesQuery;
 use oxrdf::vocab::xsd;
 use polars::datatypes::DataType;
 use polars::frame::DataFrame;
+use polars::lazy::dsl::{is_not_null};
 use polars::prelude::{
     col, lit, Expr, IntoLazy, LazyFrame, LiteralValue, Operator, Series, TimeUnit,
     UniqueKeepStrategy,
@@ -21,6 +22,7 @@ use polars::functions::concat_str;
 use spargebra::algebra::{Expression, Function};
 use std::collections::HashSet;
 use std::ops::{Div, Mul};
+use polars_core::prelude::IntoSeries;
 
 pub fn lazy_expression(
     expr: &Expression,
@@ -412,7 +414,7 @@ pub fn lazy_expression(
             let mut coalesced = col(&coalesced_context.as_str());
             for c in &inner_contexts[1..inner_contexts.len()] {
                 coalesced = Expr::Ternary {
-                    predicate: Box::new(Expr::IsNotNull(Box::new(coalesced.clone()))),
+                    predicate: Box::new(is_not_null(coalesced.clone())),
                     truthy: Box::new(coalesced.clone()),
                     falsy: Box::new(col(c.as_str())),
                 }
@@ -525,16 +527,18 @@ pub fn lazy_expression(
                 }
                 Function::Concat => {
                     assert!(args.len() > 1);
-                    inner_lf = inner_lf.with_column(
-                        concat_str(
-                            args_contexts
+                    let mut inner_df = inner_lf.collect().unwrap();
+                    let series = args_contexts
                                 .iter()
-                                .map(|c| col(c.as_str()))
-                                .collect::<Vec<Expr>>(),
+                                .map(|c| inner_df.column(c.as_str()).unwrap().clone())
+                                .collect::<Vec<Series>>();
+                    let mut concat_series = concat_str(
+                            series.as_slice(),
                             "",
-                        )
-                        .alias(context.as_str()),
-                    );
+                        ).unwrap().into_series();
+                    concat_series.rename(context.as_str());
+                    inner_df.with_column(concat_series).unwrap();
+                    inner_lf = inner_df.lazy();
                 }
                 Function::Round => {
                     assert_eq!(args.len(), 1);

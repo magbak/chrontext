@@ -99,7 +99,7 @@ impl InMemoryTimeseriesDatabase {
                 panic!("Missing frame");
             }
         }
-        let out_lf = concat(lfs, true)?;
+        let out_lf = concat(lfs, true, true)?;
         Ok(out_lf.collect().unwrap())
     }
 

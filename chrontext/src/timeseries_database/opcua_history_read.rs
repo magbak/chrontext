@@ -274,7 +274,7 @@ impl TimeSeriesQueryable for OPCUAHistoryRead {
                 dfs.push(DataFrame::new(value_vec).unwrap().lazy())
             }
         }
-        let df = concat(dfs, true).unwrap().collect().unwrap();
+        let df = concat(dfs, true, true).unwrap().collect().unwrap();
         Ok(df)
     }
 
