@@ -40,8 +40,8 @@ jobs:
       run: |
         python -m venv venv
         venv/Scripts/activate
-        pip install --upgrade pip
-        pip install maturin
+        pip install --upgrade pip --user
+        pip install maturin --user
       working-directory: .
 
     - name: Set up nightly rust
