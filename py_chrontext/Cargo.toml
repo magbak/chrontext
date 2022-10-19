@@ -1,6 +1,6 @@
 [package]
 name = "py_chrontext"
-version = "0.1.54"
+version = "0.1.55"
 edition = "2021"
 
 [workspace]
@@ -11,7 +11,7 @@ dsl = {path="../dsl"}
 chrontext = {path="../chrontext"}
 arrow_python_utils = {path="../arrow_python_utils"}
 thiserror="1.0.31"
-polars-core = {version="0.23.2"}
+polars-core = {version="0.24.3"}
 oxrdf = "0.1.0"
 spargebra = "0.2.0"
 simple-error = "0.2.3"

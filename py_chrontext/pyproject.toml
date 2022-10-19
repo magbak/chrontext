@@ -1,6 +1,6 @@
 [project]
 name = "chrontext"
-dependencies = ["rdflib==6.2.0", "polars==0.13.62", "pyarrow>=4.0.*", "pandas"]
+dependencies = ["rdflib==6.2.0", "polars==0.14.21", "pyarrow>=4.0.*", "pandas"]
 
 [build-system]
 requires = ["maturin>=0.13,<0.14"]

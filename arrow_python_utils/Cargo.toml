@@ -1,10 +1,10 @@
 [package]
 name = "arrow_python_utils"
-version = "0.1.54"
+version = "0.1.55"
 edition = "2021"
 
 [dependencies]
 pyo3 = {version = "0.16.5", features = ["extension-module"]}
-polars-core = {version="0.23.2"}
+polars-core = {version="0.24.3"}
 thiserror="1.0.31"
 simple-error = "0.2.3"

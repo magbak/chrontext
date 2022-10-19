@@ -14,9 +14,10 @@ use oxrdf::vocab::xsd;
 use polars::datatypes::DataType;
 use polars::frame::DataFrame;
 use polars::prelude::{
-    col, concat_str, lit, Expr, IntoLazy, LazyFrame, LiteralValue, Operator, Series, TimeUnit,
+    col, lit, Expr, IntoLazy, LazyFrame, LiteralValue, Operator, Series, TimeUnit,
     UniqueKeepStrategy,
 };
+use polars::functions::concat_str;
 use spargebra::algebra::{Expression, Function};
 use std::collections::HashSet;
 use std::ops::{Div, Mul};
