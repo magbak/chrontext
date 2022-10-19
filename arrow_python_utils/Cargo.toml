@@ -1,6 +1,6 @@
 [package]
 name = "arrow_python_utils"
-version = "0.1.48"
+version = "0.1.50"
 edition = "2021"
 
 [dependencies]
