@@ -55,7 +55,7 @@ jobs:
         git clone https://github.com/microsoft/vcpkg
         .\vcpkg\bootstrap-vcpkg.bat
         .\vcpkg\vcpkg install openssl-windows:x64-windows
-        .\vcpkg\vckpg install openssl:x64-windows-static
+        .\vcpkg\vcpkg install openssl:x64-windows-static
       working-directory: .
 
     - name: Build wheels
