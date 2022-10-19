@@ -51,7 +51,7 @@ jobs:
 
     - name: Build wheels
       run: |
-        venv/Scripts/activate
+        ../venv/Scripts/activate
         maturin build
       working-directory: ./py_chrontext
 
