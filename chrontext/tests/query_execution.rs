@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
+
 use crate::common::{
     add_sparql_testdata, compare_all_solutions, start_sparql_container, QUERY_ENDPOINT,
 };
@@ -603,7 +604,7 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
             ?dp chrontext:hasValue ?v .
             FILTER(?v < 300)}
             GROUP BY ?s
-            HAVING (SUM(?v) <= 1000)
+            HAVING (SUM(?v) >= 1000)
             }
     }
     "#;
@@ -627,7 +628,7 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
-    // let writer = CsvWriter::new(file);
+    // let mut writer = CsvWriter::new(file);
     // writer.finish(&mut df).expect("writeok");
     // println!("{}", df);
 }
