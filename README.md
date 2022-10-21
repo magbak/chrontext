@@ -1,7 +1,7 @@
 # chrontext
 
-- __Hybrid Query Engine:__ [SPARQL](https://www.w3.org/TR/sparql11-overview/)- and [Apache Arrow](https://arrow.apache.org/)-based high throughput access to time series data residing in an arbitrary time series database which is contextualized by a knowledge graph. Built in [Rust](https://www.rust-lang.org/) using [pola.rs](https://www.pola.rs/), [spargebra](https://docs.rs/spargebra/latest/spargebra/), [sparesults](https://docs.rs/sparesults/0.1.1/sparesults/) and [oxrdf](https://docs.rs/oxrdf/latest/oxrdf/) from the [Oxigraph](https://github.com/oxigraph/oxigraph) project.  
-- __Domain Specific Query Language:__ A customizable query language for accessing time series data using simple generalized paths such as those found in the [Reference Designation System](https://www.iso.org/standard/82229.html) or in [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) information models. The DSQL is parsed with [nom](https://docs.rs/nom/latest/nom/) and translated to the Hybrid Query language.
+- __Chrontext:__ [SPARQL](https://www.w3.org/TR/sparql11-overview/)- and [Apache Arrow](https://arrow.apache.org/)-based high throughput access to time series data residing in an arbitrary time series database which is contextualized by a knowledge graph. Built in [Rust](https://www.rust-lang.org/) using [pola.rs](https://www.pola.rs/), [spargebra](https://docs.rs/spargebra/latest/spargebra/), [sparesults](https://docs.rs/sparesults/0.1.1/sparesults/) and [oxrdf](https://docs.rs/oxrdf/latest/oxrdf/) from the [Oxigraph](https://github.com/oxigraph/oxigraph) project.  
+- __Domain Specific Language:__ A customizable query language for accessing time series data using simple generalized paths such as those found in the [Reference Designation System](https://www.iso.org/standard/82229.html) or in [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) information models. The DSQL is parsed with [nom](https://docs.rs/nom/latest/nom/) and translated to the Hybrid Query language.
 
 Currently, these tools are volatile works in progress, and should not be used by anyone for anything important. 
 ## Queries
@@ -42,7 +42,7 @@ SELECT ?w ?s ?t ?v WHERE {
 ## Installing pre-built wheels
 From the latest [release](https://github.com/magbak/chrontext/releases), copy the appropriate .whl-file for your system, then run:
 ```shell
-pip install https://github.com/magbak/chrontext/releases/download/v0.1.5/chrontext-0.1.12-cp310-cp310-manylinux_2_31_x86_64.whl
+pip install https://github.com/magbak/chrontext/releases/download/v0.1.56/chrontext-0.1.56-cp310-cp310-manylinux_2_31_x86_64.whl
 ```
 
 All code is licensed to [Prediktor AS](https://www.prediktor.com/) under the Apache 2.0 license unless otherwise noted, and has been financed by [The Research Council of Norway](https://www.forskningsradet.no/en/) (grant no. 316656) and [Prediktor AS](https://www.prediktor.com/) as part of a PhD Degree.  
