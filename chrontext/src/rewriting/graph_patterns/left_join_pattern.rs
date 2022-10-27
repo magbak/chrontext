@@ -11,17 +11,14 @@ impl StaticQueryRewriter {
         left: &GraphPattern,
         right: &GraphPattern,
         expression_opt: &Option<Expression>,
-        required_change_direction: &ChangeType,
         context: &Context,
     ) -> GPReturn {
         let mut left_rewrite = self.rewrite_graph_pattern(
             left,
-            required_change_direction,
             &context.extension_with(PathEntry::LeftJoinLeftSide),
         );
         let mut right_rewrite = self.rewrite_graph_pattern(
             right,
-            required_change_direction,
             &context.extension_with(PathEntry::LeftJoinRightSide),
         );
         let mut expression_rewrite_opt = None;
@@ -33,7 +30,7 @@ impl StaticQueryRewriter {
                 if let Some(expression) = expression_opt {
                     expression_rewrite_opt = Some(self.rewrite_expression(
                         expression,
-                        required_change_direction,
+                        &ChangeType::Relaxed,
                         &left_rewrite.variables_in_scope,
                         &context.extension_with(PathEntry::LeftJoinExpression),
                     ));
@@ -158,7 +155,7 @@ impl StaticQueryRewriter {
                 if let Some(expression) = expression_opt {
                     expression_rewrite_opt = Some(self.rewrite_expression(
                         expression,
-                        required_change_direction,
+                        &ChangeType::Relaxed,
                         &left_rewrite.variables_in_scope,
                         &context.extension_with(PathEntry::LeftJoinExpression),
                     ));
@@ -206,7 +203,7 @@ impl StaticQueryRewriter {
             if let Some(expression) = expression_opt {
                 expression_rewrite_opt = Some(self.rewrite_expression(
                     expression,
-                    required_change_direction,
+                    &ChangeType::Relaxed,
                     &right_rewrite.variables_in_scope,
                     &context.extension_with(PathEntry::LeftJoinExpression),
                 ));

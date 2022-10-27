@@ -12,7 +12,6 @@ impl StaticQueryRewriter {
     ) -> ExReturn {
         let mut wrapped_rewrite = self.rewrite_graph_pattern(
             wrapped,
-            &ChangeType::NoChange,
             &context.extension_with(PathEntry::Exists),
         );
         let mut exr = ExReturn::new();

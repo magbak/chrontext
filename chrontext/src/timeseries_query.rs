@@ -12,7 +12,7 @@ use std::fmt::{Display, Formatter};
 pub enum TimeSeriesQuery {
     Basic(BasicTimeSeriesQuery),
     GroupedBasic(BasicTimeSeriesQuery, DataFrame, String),
-    Filtered(Box<TimeSeriesQuery>, Expression), //Flag lets us know if filtering is complete.
+    Filtered(Box<TimeSeriesQuery>, Expression), 
     InnerSynchronized(Vec<Box<TimeSeriesQuery>>, Vec<Synchronizer>),
     ExpressionAs(Box<TimeSeriesQuery>, Variable, Expression),
     Grouped(GroupedTimeSeriesQuery),

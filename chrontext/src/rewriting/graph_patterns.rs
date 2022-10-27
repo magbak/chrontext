@@ -97,7 +97,6 @@ impl StaticQueryRewriter {
     pub fn rewrite_graph_pattern(
         &mut self,
         graph_pattern: &GraphPattern,
-        required_change_direction: &ChangeType,
         context: &Context,
     ) -> GPReturn {
         match graph_pattern {
@@ -108,23 +107,23 @@ impl StaticQueryRewriter {
                 object,
             } => self.rewrite_path(subject, path, object),
             GraphPattern::Join { left, right } => {
-                self.rewrite_join(left, right, required_change_direction, context)
+                self.rewrite_join(left, right,  context)
             }
             GraphPattern::LeftJoin {
                 left,
                 right,
                 expression,
             } => {
-                self.rewrite_left_join(left, right, expression, required_change_direction, context)
+                self.rewrite_left_join(left, right, expression,  context)
             }
             GraphPattern::Filter { expr, inner } => {
-                self.rewrite_filter(expr, inner, required_change_direction, context)
+                self.rewrite_filter(expr, inner,  context)
             }
             GraphPattern::Union { left, right } => {
-                self.rewrite_union(left, right, required_change_direction, context)
+                self.rewrite_union(left, right,  context)
             }
             GraphPattern::Graph { name, inner } => {
-                self.rewrite_graph(name, inner, required_change_direction, context)
+                self.rewrite_graph(name, inner,  context)
             }
             GraphPattern::Extend {
                 inner,
@@ -134,33 +133,33 @@ impl StaticQueryRewriter {
                 inner,
                 variable,
                 expression,
-                required_change_direction,
+                
                 context,
             ),
             GraphPattern::Minus { left, right } => {
-                self.rewrite_minus(left, right, required_change_direction, context)
+                self.rewrite_minus(left, right,  context)
             }
             GraphPattern::Values {
                 variables,
                 bindings,
             } => self.rewrite_values(variables, bindings),
             GraphPattern::OrderBy { inner, expression } => {
-                self.rewrite_order_by(inner, expression, required_change_direction, context)
+                self.rewrite_order_by(inner, expression,  context)
             }
             GraphPattern::Project { inner, variables } => {
-                self.rewrite_project(inner, variables, required_change_direction, context)
+                self.rewrite_project(inner, variables,  context)
             }
             GraphPattern::Distinct { inner } => {
-                self.rewrite_distinct(inner, required_change_direction, context)
+                self.rewrite_distinct(inner,  context)
             }
             GraphPattern::Reduced { inner } => {
-                self.rewrite_reduced(inner, required_change_direction, context)
+                self.rewrite_reduced(inner,  context)
             }
             GraphPattern::Slice {
                 inner,
                 start,
                 length,
-            } => self.rewrite_slice(inner, start, length, required_change_direction, context),
+            } => self.rewrite_slice(inner, start, length,  context),
             GraphPattern::Group {
                 inner,
                 variables,
@@ -169,7 +168,7 @@ impl StaticQueryRewriter {
                 inner,
                 variables,
                 aggregates,
-                required_change_direction,
+                
                 context,
             ),
             GraphPattern::Service {

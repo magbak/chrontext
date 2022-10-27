@@ -42,9 +42,8 @@ impl StaticQueryRewriter {
             base_iri,
         } = &query
         {
-            let required_change_direction = ChangeType::Relaxed;
             let mut pattern_rewrite =
-                self.rewrite_graph_pattern(pattern, &required_change_direction, &Context::new());
+                self.rewrite_graph_pattern(pattern, &Context::new());
             if pattern_rewrite.graph_pattern.is_some() {
                 if &pattern_rewrite.change_type == &ChangeType::NoChange
                     || &pattern_rewrite.change_type == &ChangeType::Relaxed

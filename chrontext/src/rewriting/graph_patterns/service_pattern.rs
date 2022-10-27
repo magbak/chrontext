@@ -1,5 +1,4 @@
 use super::StaticQueryRewriter;
-use crate::change_types::ChangeType;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
 use spargebra::algebra::GraphPattern;
@@ -15,7 +14,6 @@ impl StaticQueryRewriter {
     ) -> GPReturn {
         let mut inner_rewrite = self.rewrite_graph_pattern(
             inner,
-            &ChangeType::NoChange,
             &context.extension_with(PathEntry::ServiceInner),
         );
         if inner_rewrite.graph_pattern.is_some() {

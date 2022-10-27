@@ -10,17 +10,15 @@ impl StaticQueryRewriter {
         &mut self,
         left: &GraphPattern,
         right: &GraphPattern,
-        required_change_direction: &ChangeType,
+
         context: &Context,
     ) -> GPReturn {
         let mut left_rewrite = self.rewrite_graph_pattern(
             left,
-            required_change_direction,
             &context.extension_with(PathEntry::JoinLeftSide),
         );
         let mut right_rewrite = self.rewrite_graph_pattern(
             right,
-            required_change_direction,
             &context.extension_with(PathEntry::JoinRightSide),
         );
 

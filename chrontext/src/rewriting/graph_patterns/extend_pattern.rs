@@ -13,12 +13,11 @@ impl StaticQueryRewriter {
         inner: &GraphPattern,
         var: &Variable,
         expr: &Expression,
-        required_change_direction: &ChangeType,
+
         context: &Context,
     ) -> GPReturn {
         let mut inner_rewrite = self.rewrite_graph_pattern(
             inner,
-            required_change_direction,
             &context.extension_with(PathEntry::ExtendInner),
         );
         if inner_rewrite.graph_pattern.is_some() {

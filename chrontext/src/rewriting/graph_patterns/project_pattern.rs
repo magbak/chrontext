@@ -1,5 +1,4 @@
 use super::StaticQueryRewriter;
-use crate::change_types::ChangeType;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
 use oxrdf::Variable;
@@ -10,12 +9,11 @@ impl StaticQueryRewriter {
         &mut self,
         inner: &GraphPattern,
         variables: &Vec<Variable>,
-        required_change_direction: &ChangeType,
+
         context: &Context,
     ) -> GPReturn {
         let mut inner_rewrite = self.rewrite_graph_pattern(
             inner,
-            required_change_direction,
             &context.extension_with(PathEntry::ProjectInner),
         );
         if inner_rewrite.graph_pattern.is_some() {

@@ -10,19 +10,18 @@ impl StaticQueryRewriter {
         &mut self,
         expression: &Expression,
         inner: &GraphPattern,
-        required_change_direction: &ChangeType,
+
         context: &Context,
     ) -> GPReturn {
         let mut inner_rewrite = self.rewrite_graph_pattern(
             inner,
-            required_change_direction,
             &context.extension_with(PathEntry::FilterInner),
         );
 
         if inner_rewrite.graph_pattern.is_some() {
             let mut expression_rewrite = self.rewrite_expression(
                 expression,
-                required_change_direction,
+                &ChangeType::Relaxed,
                 &inner_rewrite.variables_in_scope,
                 &context.extension_with(PathEntry::FilterExpression),
             );

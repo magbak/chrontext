@@ -4,8 +4,7 @@ use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::timeseries_database::simple_in_memory_timeseries::InMemoryTimeseriesDatabase;
 use log::debug;
-use polars::io::SerWriter;
-use polars::prelude::{CsvReader, CsvWriter, SerReader};
+use polars::prelude::{CsvReader, SerReader};
 use rstest::*;
 use serial_test::serial;
 use std::collections::HashMap;
@@ -123,7 +122,7 @@ SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val) as 
 }
 GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     "#;
-    let mut df = engine
+    let df = engine
         .execute_hybrid_query(query, QUERY_ENDPOINT)
         .await
         .expect("Hybrid error")
@@ -227,7 +226,7 @@ SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val_prod
 }
 GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     "#;
-    let mut df = engine
+    let df = engine
         .execute_hybrid_query(query, QUERY_ENDPOINT)
         .await
         .expect("Hybrid error")
