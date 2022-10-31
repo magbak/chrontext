@@ -41,8 +41,7 @@ impl GPReturn {
         variables_in_scope: HashSet<Variable>,
         datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
         external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
-        contains_exploded_pattern:bool,
-        exploded_context: Option<Contex>,
+        subquery_context: Option<Context>,
         is_subquery: bool,
     ) -> GPReturn {
         GPReturn {
@@ -51,8 +50,7 @@ impl GPReturn {
             variables_in_scope,
             datatypes_in_scope,
             external_ids_in_scope,
-            contains_exploded_pattern,
-            subquery_context: exploded_context,
+            subquery_context,
             is_subquery
         }
     }
@@ -64,7 +62,6 @@ impl GPReturn {
             variables_in_scope: Default::default(),
             datatypes_in_scope: Default::default(),
             external_ids_in_scope: Default::default(),
-            contains_exploded_pattern:true,
             subquery_context:Some(exploded_context),
             is_subquery:true
         }
@@ -77,11 +74,6 @@ impl GPReturn {
 
     fn with_rewritten(&mut self, rewritten:bool) -> &mut GPReturn {
         self.rewritten = rewritten;
-        self
-    }
-
-    fn with_exploded(&mut self, exploded:bool) -> &mut GPReturn {
-        self.exploded = exploded;
         self
     }
 

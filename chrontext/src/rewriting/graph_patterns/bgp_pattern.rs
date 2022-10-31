@@ -122,7 +122,8 @@ impl StaticQueryRewriter {
                 Default::default(),
                 Default::default(),
                 Default::default(),
-                false,
+                None,
+                false
             )
         } else {
             let mut variables_in_scope = HashSet::new();
@@ -143,6 +144,7 @@ impl StaticQueryRewriter {
                 variables_in_scope,
                 datatypes_in_scope,
                 external_ids_in_scope,
+                None,
                 false,
             );
             gpr

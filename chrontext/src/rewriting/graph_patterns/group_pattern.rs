@@ -13,9 +13,10 @@ impl StaticQueryRewriter {
         aggregates: &Vec<(Variable, AggregateExpression)>,
         context: &Context,
     ) -> GPReturn {
+        let inner_context = context.extension_with(PathEntry::GroupInner);
         let mut graph_pattern_rewrite = self.rewrite_graph_pattern(
             graph_pattern,
-            &context.extension_with(PathEntry::GroupInner),
+            &inner_context,
         );
         if !graph_pattern_rewrite.is_subquery {
             if !graph_pattern_rewrite.rewritten {

@@ -20,8 +20,6 @@ impl StaticQueryRewriter {
 
         if left_rewrite.is_subquery
             || right_rewrite.is_subquery
-            || left_rewrite.contains_exploded_pattern
-            || right_rewrite.contains_exploded_pattern
         {
             let left_subquery_context;
             if !left_rewrite.is_subquery {

@@ -84,8 +84,6 @@ impl StaticQueryRewriter {
         } else {
             if left_rewrite.is_subquery
                 || right_rewrite.is_subquery
-                || left_rewrite.contains_exploded_pattern
-                || right_rewrite.contains_exploded_pattern
             {
                 if !left_rewrite.is_subquery {
                     self.create_add_subquery(
