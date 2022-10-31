@@ -3,14 +3,12 @@ mod expressions;
 mod graph_patterns;
 mod order_expression;
 mod project_static;
-mod pushups;
 
-use crate::change_types::ChangeType;
 use crate::constraints::{Constraint, VariableConstraints};
-use crate::query_context::Context;
+use crate::query_context::{Context, PathEntry};
 use crate::rewriting::expressions::ExReturn;
 use crate::timeseries_query::BasicTimeSeriesQuery;
-use spargebra::algebra::Expression;
+use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::term::Variable;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
@@ -21,6 +19,8 @@ pub struct StaticQueryRewriter {
     additional_projections: HashSet<Variable>,
     variable_constraints: VariableConstraints,
     basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
+    static_subqueries: HashMap<Context, GraphPattern>,
+    subquery_ntuples: Vec<Vec<(PathEntry, Context)>>,
     pub rewritten_filters: HashMap<Context, Expression>,
 }
 
@@ -31,6 +31,8 @@ impl StaticQueryRewriter {
             additional_projections: Default::default(),
             variable_constraints: variable_constraints.clone(),
             basic_time_series_queries: vec![],
+            static_subqueries: HashMap::new(),
+            subquery_ntuples: vec![],
             rewritten_filters: HashMap::new(),
         }
     }
@@ -42,25 +44,18 @@ impl StaticQueryRewriter {
             base_iri,
         } = &query
         {
-            let mut pattern_rewrite =
-                self.rewrite_graph_pattern(pattern, &Context::new());
+            let mut pattern_rewrite = self.rewrite_graph_pattern(pattern, &Context::new());
             if pattern_rewrite.graph_pattern.is_some() {
-                if &pattern_rewrite.change_type == &ChangeType::NoChange
-                    || &pattern_rewrite.change_type == &ChangeType::Relaxed
-                {
-                    return Some((
-                        Query::Select {
-                            dataset: dataset.clone(),
-                            pattern: pattern_rewrite.graph_pattern.take().unwrap(),
-                            base_iri: base_iri.clone(),
-                        },
-                        self.basic_time_series_queries
-                            .drain(0..self.basic_time_series_queries.len())
-                            .collect(),
-                    ));
-                } else {
-                    None
-                }
+                return Some((
+                    Query::Select {
+                        dataset: dataset.clone(),
+                        pattern: pattern_rewrite.graph_pattern.take().unwrap(),
+                        base_iri: base_iri.clone(),
+                    },
+                    self.basic_time_series_queries
+                        .drain(0..self.basic_time_series_queries.len())
+                        .collect(),
+                ));
             } else {
                 None
             }

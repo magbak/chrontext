@@ -1,5 +1,4 @@
 use super::StaticQueryRewriter;
-use crate::change_types::ChangeType;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
 use spargebra::algebra::GraphPattern;
@@ -12,53 +11,49 @@ impl StaticQueryRewriter {
 
         context: &Context,
     ) -> GPReturn {
+        let left_context = context.extension_with(PathEntry::UnionLeftSide);
         let mut left_rewrite =
-            self.rewrite_graph_pattern(left, &context.extension_with(PathEntry::UnionLeftSide));
+            self.rewrite_graph_pattern(left, &left_context);
+        let right_context = context.extension_with(PathEntry::UnionRightSide);
         let mut right_rewrite =
-            self.rewrite_graph_pattern(right, &context.extension_with(PathEntry::UnionRightSide));
+            self.rewrite_graph_pattern(right, &right_context);
 
-        if left_rewrite.graph_pattern.is_some() {
-            if right_rewrite.graph_pattern.is_some() {
-                let use_change;
-                if &left_rewrite.change_type == &ChangeType::NoChange
-                    && &right_rewrite.change_type == &ChangeType::NoChange
-                {
-                    use_change = ChangeType::NoChange;
-                } else if &left_rewrite.change_type == &ChangeType::NoChange
-                    || &right_rewrite.change_type == &ChangeType::NoChange
-                    || &left_rewrite.change_type == &ChangeType::Relaxed
-                    || &right_rewrite.change_type == &ChangeType::Relaxed
-                {
-                    use_change = ChangeType::Relaxed;
-                } else {
-                    return GPReturn::none();
-                }
-                let left_graph_pattern = left_rewrite.graph_pattern.take().unwrap();
-                let right_graph_pattern = right_rewrite.graph_pattern.take().unwrap();
-                left_rewrite
-                    .with_scope(&mut right_rewrite)
-                    .with_graph_pattern(GraphPattern::Union {
-                        left: Box::new(left_graph_pattern),
-                        right: Box::new(right_graph_pattern),
-                    })
-                    .with_change_type(use_change);
-                return left_rewrite;
+        if left_rewrite.is_subquery
+            || right_rewrite.is_subquery
+            || left_rewrite.contains_exploded_pattern
+            || right_rewrite.contains_exploded_pattern
+        {
+            let left_subquery_context;
+            if !left_rewrite.is_subquery {
+                self.create_add_subquery(left_rewrite, &left_context, PathEntry::UnionLeftSide);
+                left_subquery_context = left_context.clone();
             } else {
-                //left is some, right is none
-                if &left_rewrite.change_type == &ChangeType::Relaxed
-                    || &left_rewrite.change_type == &ChangeType::NoChange
-                {
-                    return left_rewrite;
-                }
+                left_subquery_context = left_rewrite.subquery_context.unwrap().clone();
             }
-        } else if right_rewrite.graph_pattern.is_some() {
-            //left is none, right is some
-            if &right_rewrite.change_type == &ChangeType::Relaxed
-                || &right_rewrite.change_type == &ChangeType::NoChange
-            {
-                return right_rewrite;
+            let right_subquery_context;
+            if !right_rewrite.is_subquery {
+                self.create_add_subquery(right_rewrite, &right_context, PathEntry::UnionRightSide);
+                right_subquery_context = right_context.clone();
+            } else {
+                right_subquery_context = right_rewrite.subquery_context.unwrap().clone();
             }
+            self.subquery_ntuples.push(vec![
+                (PathEntry::JoinLeftSide, left_subquery_context),
+                (PathEntry::JoinRightSide, right_subquery_context),
+            ]);
+            return GPReturn::subquery(context.clone())
         }
-        GPReturn::none()
+
+        let left_graph_pattern = left_rewrite.graph_pattern.take().unwrap();
+        let right_graph_pattern = right_rewrite.graph_pattern.take().unwrap();
+
+        left_rewrite
+            .with_scope(&mut right_rewrite)
+            .with_graph_pattern(GraphPattern::Union {
+                left: Box::new(left_graph_pattern),
+                right: Box::new(right_graph_pattern),
+            })
+            .with_rewritten(left_rewrite.rewritten || right_rewrite.rewritten);
+        return left_rewrite;
     }
 }

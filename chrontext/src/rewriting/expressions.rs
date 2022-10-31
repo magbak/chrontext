@@ -14,14 +14,16 @@ use crate::change_types::ChangeType;
 use crate::query_context::Context;
 use crate::rewriting::expressions::binary_ordinary_expression::BinaryOrdinaryOperator;
 use crate::rewriting::expressions::unary_ordinary_expression::UnaryOrdinaryOperator;
+use crate::rewriting::graph_patterns::GPReturn;
 use oxrdf::Variable;
-use spargebra::algebra::{Expression, GraphPattern};
+use spargebra::algebra::{Expression};
 use std::collections::HashSet;
 
 pub struct ExReturn {
     pub expression: Option<Expression>,
     pub change_type: Option<ChangeType>,
-    pub graph_pattern_pushups: Vec<GraphPattern>,
+    pub pushups: Vec<GPReturn>,
+    pub pushup_contexts: Vec<Context>,
 }
 
 impl ExReturn {
@@ -29,7 +31,8 @@ impl ExReturn {
         ExReturn {
             expression: None,
             change_type: None,
-            graph_pattern_pushups: vec![],
+            pushups: vec![],
+            pushup_contexts: vec![],
         }
     }
 
@@ -43,16 +46,16 @@ impl ExReturn {
         self
     }
 
-    fn with_graph_pattern_pushup(&mut self, graph_pattern: GraphPattern) -> &mut ExReturn {
-        self.graph_pattern_pushups.push(graph_pattern);
+    fn with_pushup_and_context(&mut self, gpreturn: GPReturn, context: Context) -> &mut ExReturn {
+        self.pushups.push(gpreturn);
+        self.pushup_contexts.push(context);
         self
     }
 
-    fn with_pushups(&mut self, exr: &mut ExReturn) -> &mut ExReturn {
-        self.graph_pattern_pushups.extend(
-            exr.graph_pattern_pushups
-                .drain(0..exr.graph_pattern_pushups.len()),
-        );
+    fn with_pushups_and_contexts(&mut self, exr: &mut ExReturn) -> &mut ExReturn {
+        self.pushups.extend(exr.pushups.drain(0..exr.pushups.len()));
+        self.pushup_contexts
+            .extend(exr.pushup_contexts.drain(0..exr.pushup_contexts.len()));
         self
     }
 }

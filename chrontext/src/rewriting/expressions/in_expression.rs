@@ -34,9 +34,9 @@ impl StaticQueryRewriter {
             })
             .collect::<Vec<ExReturn>>();
         let mut exr = ExReturn::new();
-        exr.with_pushups(&mut left_rewrite);
+        exr.with_pushups_and_contexts(&mut left_rewrite);
         for rw_exr in expressions_rewritten.iter_mut() {
-            exr.with_pushups(rw_exr);
+            exr.with_pushups_and_contexts(rw_exr);
         }
 
         if left_rewrite.expression.is_some()

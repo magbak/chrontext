@@ -94,8 +94,8 @@ impl StaticQueryRewriter {
             &context.extension_with(right_path_entry),
         );
         let mut exr = ExReturn::new();
-        exr.with_pushups(&mut left_rewrite)
-            .with_pushups(&mut right_rewrite);
+        exr.with_pushups_and_contexts(&mut left_rewrite)
+            .with_pushups_and_contexts(&mut right_rewrite);
         if left_rewrite.expression.is_some()
             && left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
             && right_rewrite.expression.is_some()

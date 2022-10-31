@@ -12,7 +12,7 @@ impl StaticQueryRewriter {
         context: &Context,
     ) -> GPReturn {
         let mut inner_gpr = self.rewrite_graph_pattern(inner, context);
-        if inner_gpr.graph_pattern.is_some() {
+        if !inner_gpr.is_subquery {
             let inner_rewrite = inner_gpr.graph_pattern.take().unwrap();
             inner_gpr.with_graph_pattern(GraphPattern::Graph {
                 name: name.clone(),
@@ -20,6 +20,6 @@ impl StaticQueryRewriter {
             });
             return inner_gpr;
         }
-        GPReturn::none()
+        unimplemented!("No support for rewritten graph graph pattern")
     }
 }

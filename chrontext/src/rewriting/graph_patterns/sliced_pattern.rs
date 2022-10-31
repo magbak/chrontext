@@ -16,7 +16,7 @@ impl StaticQueryRewriter {
             inner,
             &context.extension_with(PathEntry::SliceInner),
         );
-        if inner_rewrite.graph_pattern.is_some() {
+        if !inner_rewrite.is_subquery {
             let inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
             inner_rewrite.with_graph_pattern(GraphPattern::Slice {
                 inner: Box::new(inner_graph_pattern),
@@ -25,6 +25,6 @@ impl StaticQueryRewriter {
             });
             return inner_rewrite;
         }
-        GPReturn::none()
+        inner_rewrite
     }
 }

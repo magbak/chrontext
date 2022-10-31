@@ -16,7 +16,7 @@ impl StaticQueryRewriter {
             inner,
             &context.extension_with(PathEntry::ServiceInner),
         );
-        if inner_rewrite.graph_pattern.is_some() {
+        if !inner_rewrite.rewritten {
             let inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
             inner_rewrite.with_graph_pattern(GraphPattern::Service {
                 name: name.clone(),

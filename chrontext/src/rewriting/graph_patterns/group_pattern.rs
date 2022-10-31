@@ -1,9 +1,7 @@
 use super::StaticQueryRewriter;
-use crate::change_types::ChangeType;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::aggregate_expression::AEReturn;
 use crate::rewriting::graph_patterns::GPReturn;
-use crate::rewriting::pushups::apply_pushups;
 use oxrdf::Variable;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 
@@ -19,8 +17,8 @@ impl StaticQueryRewriter {
             graph_pattern,
             &context.extension_with(PathEntry::GroupInner),
         );
-        if graph_pattern_rewrite.graph_pattern.is_some() {
-            if graph_pattern_rewrite.change_type == ChangeType::NoChange {
+        if !graph_pattern_rewrite.is_subquery {
+            if !graph_pattern_rewrite.rewritten {
                 let variables_rewritten: Vec<Option<Variable>> = variables
                     .iter()
                     .map(|v| self.rewrite_variable(v, context))
@@ -40,6 +38,7 @@ impl StaticQueryRewriter {
                         )
                     })
                     .collect();
+
                 if variables_rewritten.iter().all(|v| v.is_some())
                     && aes_rewritten
                         .iter()
@@ -52,10 +51,7 @@ impl StaticQueryRewriter {
                     }
                     let mut inner_graph_pattern =
                         graph_pattern_rewrite.graph_pattern.take().unwrap();
-                    for (_, aes) in aes_rewritten.iter_mut() {
-                        inner_graph_pattern =
-                            apply_pushups(inner_graph_pattern, &mut aes.graph_pattern_pushups);
-                    }
+
                     graph_pattern_rewrite.with_graph_pattern(GraphPattern::Group {
                         inner: Box::new(inner_graph_pattern),
                         variables: variables_rewritten
@@ -67,10 +63,11 @@ impl StaticQueryRewriter {
                     return graph_pattern_rewrite;
                 }
             } else {
-                //TODO: Possible problem with pushups here.
-                return graph_pattern_rewrite;
+                self.create_add_subquery(graph_pattern_rewrite.clone(), &inner_context, PathEntry::FilterExpression);
+                self.subquery_ntuples.push(vec![(PathEntry::GroupInner, inner_context.clone())]);
+                return GPReturn::subquery(inner_context.clone());
             }
         }
-        return GPReturn::none();
+        graph_pattern_rewrite
     }
 }

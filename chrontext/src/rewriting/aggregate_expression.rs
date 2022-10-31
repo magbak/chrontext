@@ -1,21 +1,18 @@
 use super::StaticQueryRewriter;
 use crate::change_types::ChangeType;
 use crate::query_context::{Context, PathEntry};
-use crate::rewriting::expressions::ExReturn;
 use oxrdf::Variable;
-use spargebra::algebra::{AggregateExpression, GraphPattern};
+use spargebra::algebra::{AggregateExpression};
 use std::collections::HashSet;
 
 pub struct AEReturn {
     pub aggregate_expression: Option<AggregateExpression>,
-    pub graph_pattern_pushups: Vec<GraphPattern>,
 }
 
 impl AEReturn {
     fn new() -> AEReturn {
         AEReturn {
             aggregate_expression: None,
-            graph_pattern_pushups: vec![],
         }
     }
 
@@ -24,14 +21,6 @@ impl AEReturn {
         aggregate_expression: AggregateExpression,
     ) -> &mut AEReturn {
         self.aggregate_expression = Some(aggregate_expression);
-        self
-    }
-
-    fn with_pushups(&mut self, exr: &mut ExReturn) -> &mut AEReturn {
-        self.graph_pattern_pushups.extend(
-            exr.graph_pattern_pushups
-                .drain(0..exr.graph_pattern_pushups.len()),
-        );
         self
     }
 }
@@ -53,7 +42,9 @@ impl StaticQueryRewriter {
                         variables_in_scope,
                         &context.extension_with(PathEntry::AggregationOperation),
                     );
-                    aer.with_pushups(&mut expr_rewritten);
+                    if !expr_rewritten.pushups.is_empty() {
+                        unimplemented!("Exists patterns containing time series values within aggregation is not supported")
+                    }
                     if expr_rewritten.expression.is_some()
                         && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
                     {
@@ -76,7 +67,9 @@ impl StaticQueryRewriter {
                     variables_in_scope,
                     &context.extension_with(PathEntry::AggregationOperation),
                 );
-                aer.with_pushups(&mut expr_rewritten);
+                if !expr_rewritten.pushups.is_empty() {
+                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
+                }
                 if expr_rewritten.expression.is_some()
                     && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
                 {
@@ -93,7 +86,9 @@ impl StaticQueryRewriter {
                     variables_in_scope,
                     &context.extension_with(PathEntry::AggregationOperation),
                 );
-                aer.with_pushups(&mut expr_rewritten);
+                if !expr_rewritten.pushups.is_empty() {
+                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
+                }
                 if expr_rewritten.expression.is_some()
                     && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
                 {
@@ -110,7 +105,9 @@ impl StaticQueryRewriter {
                     variables_in_scope,
                     &context.extension_with(PathEntry::AggregationOperation),
                 );
-                aer.with_pushups(&mut expr_rewritten);
+                if !expr_rewritten.pushups.is_empty() {
+                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
+                }
                 if expr_rewritten.expression.is_some()
                     && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
                 {
@@ -127,7 +124,9 @@ impl StaticQueryRewriter {
                     variables_in_scope,
                     &context.extension_with(PathEntry::AggregationOperation),
                 );
-                aer.with_pushups(&mut expr_rewritten);
+                if !expr_rewritten.pushups.is_empty() {
+                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
+                }
                 if expr_rewritten.expression.is_some()
                     && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
                 {
@@ -148,7 +147,9 @@ impl StaticQueryRewriter {
                     variables_in_scope,
                     &context.extension_with(PathEntry::AggregationOperation),
                 );
-                aer.with_pushups(&mut expr_rewritten);
+                if !expr_rewritten.pushups.is_empty() {
+                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
+                }
                 if expr_rewritten.expression.is_some()
                     && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
                 {
@@ -166,7 +167,10 @@ impl StaticQueryRewriter {
                     variables_in_scope,
                     &context.extension_with(PathEntry::AggregationOperation),
                 );
-                aer.with_pushups(&mut expr_rewritten);
+
+                if !expr_rewritten.pushups.is_empty() {
+                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
+                }
                 if expr_rewritten.expression.is_some()
                     && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
                 {
@@ -187,7 +191,9 @@ impl StaticQueryRewriter {
                     variables_in_scope,
                     &context.extension_with(PathEntry::AggregationOperation),
                 );
-                aer.with_pushups(&mut expr_rewritten);
+                if !expr_rewritten.pushups.is_empty() {
+                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
+                }
                 if expr_rewritten.expression.is_some()
                     && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
                 {

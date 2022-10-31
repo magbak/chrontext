@@ -2,7 +2,6 @@ use super::StaticQueryRewriter;
 use crate::change_types::ChangeType;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
-use crate::rewriting::pushups::apply_pushups;
 use oxrdf::Variable;
 use spargebra::algebra::{Expression, GraphPattern};
 use std::collections::HashSet;
@@ -13,14 +12,13 @@ impl StaticQueryRewriter {
         inner: &GraphPattern,
         var: &Variable,
         expr: &Expression,
-
         context: &Context,
     ) -> GPReturn {
         let mut inner_rewrite = self.rewrite_graph_pattern(
             inner,
             &context.extension_with(PathEntry::ExtendInner),
         );
-        if inner_rewrite.graph_pattern.is_some() {
+        if !inner_rewrite.is_subquery {
             let mut expr_rewrite = self.rewrite_expression(
                 expr,
                 &ChangeType::NoChange,
@@ -35,13 +33,9 @@ impl StaticQueryRewriter {
                     variable: var.clone(),
                     expression: expr_rewrite.expression.take().unwrap(),
                 });
+
                 return inner_rewrite;
             } else {
-                let inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
-                inner_rewrite.with_graph_pattern(apply_pushups(
-                    inner_graph_pattern,
-                    &mut expr_rewrite.graph_pattern_pushups,
-                ));
                 return inner_rewrite;
             }
         }
@@ -51,7 +45,7 @@ impl StaticQueryRewriter {
             &HashSet::new(),
             &context.extension_with(PathEntry::ExtendExpression),
         );
-        if expr_rewrite.graph_pattern_pushups.len() > 0 {
+        if expr_rewrite.pushups.len() > 0 {
             todo!("Solution will require graph pattern pushups for graph patterns!!");
         }
         return GPReturn::none();

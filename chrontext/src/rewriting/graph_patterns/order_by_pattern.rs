@@ -2,7 +2,6 @@ use super::StaticQueryRewriter;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
 use crate::rewriting::order_expression::OEReturn;
-use crate::rewriting::pushups::apply_pushups;
 use spargebra::algebra::{GraphPattern, OrderExpression};
 
 impl StaticQueryRewriter {
@@ -30,10 +29,6 @@ impl StaticQueryRewriter {
                 })
                 .collect::<Vec<OEReturn>>();
             let mut inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
-            for oer in order_expressions_rewrite.iter_mut() {
-                inner_graph_pattern =
-                    apply_pushups(inner_graph_pattern, &mut oer.graph_pattern_pushups);
-            }
             if order_expressions_rewrite
                 .iter()
                 .any(|oer| oer.order_expression.is_some())

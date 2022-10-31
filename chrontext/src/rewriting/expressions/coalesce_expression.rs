@@ -27,7 +27,7 @@ impl StaticQueryRewriter {
             .collect::<Vec<ExReturn>>();
         let mut exr = ExReturn::new();
         for e in rewritten.iter_mut() {
-            exr.with_pushups(e);
+            exr.with_pushups_and_contexts(e);
         }
         if rewritten.iter().all(|x| {
             x.expression.is_some() && x.change_type.as_ref().unwrap() == &ChangeType::NoChange
