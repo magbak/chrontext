@@ -2,6 +2,7 @@ use super::StaticQueryRewriter;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
 
+use crate::rewriting::subqueries::{SubQuery, SubQueryInContext};
 use spargebra::algebra::GraphPattern;
 
 impl StaticQueryRewriter {
@@ -16,19 +17,25 @@ impl StaticQueryRewriter {
         let right_context = context.extension_with(PathEntry::JoinRightSide);
         let mut right_rewrite = self.rewrite_graph_pattern(right, &right_context);
 
-        if left_rewrite.is_subquery
-            || right_rewrite.is_subquery
-        {
+        if left_rewrite.is_subquery || right_rewrite.is_subquery {
+            let left_subquery_context;
             if !left_rewrite.is_subquery {
-                self.create_add_subquery(left_rewrite, &left_context, PathEntry::JoinLeftSide);
+                self.create_add_subquery(left_rewrite, &left_context);
+                left_subquery_context = left_context.clone();
+            } else {
+                left_subquery_context = left_rewrite.subquery_context.unwrap().clone();
             }
+            let right_subquery_context;
             if !right_rewrite.is_subquery {
-                self.create_add_subquery(right_rewrite, &right_context, PathEntry::JoinRightSide);
+                self.create_add_subquery(right_rewrite, &right_context);
+                right_subquery_context = right_context.clone();
+            } else {
+                right_subquery_context = right_rewrite.subquery_context.unwrap().clone();
             }
-            self.subquery_ntuples.push(vec![
-                (PathEntry::JoinLeftSide, left_context),
-                (PathEntry::JoinRightSide, right_context),
-            ]);
+            self.subqueries_in_context.push(SubQueryInContext::new(
+                context.clone(),
+                SubQuery::Join(left_subquery_context, right_subquery_context),
+            ));
             let mut ret = GPReturn::subquery(context.clone());
             return ret;
         }

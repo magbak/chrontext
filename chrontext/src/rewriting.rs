@@ -3,15 +3,17 @@ mod expressions;
 mod graph_patterns;
 mod order_expression;
 mod project_static;
+pub(crate) mod subqueries;
 
 use crate::constraints::{Constraint, VariableConstraints};
-use crate::query_context::{Context, PathEntry};
+use crate::query_context::{Context};
 use crate::rewriting::expressions::ExReturn;
 use crate::timeseries_query::BasicTimeSeriesQuery;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::term::Variable;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
+use crate::rewriting::subqueries::SubQueryInContext;
 
 #[derive(Debug)]
 pub struct StaticQueryRewriter {
@@ -20,7 +22,7 @@ pub struct StaticQueryRewriter {
     variable_constraints: VariableConstraints,
     basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
     static_subqueries: HashMap<Context, GraphPattern>,
-    subquery_ntuples: Vec<Vec<(PathEntry, Context)>>,
+    subqueries_in_context: Vec<SubQueryInContext>,
     pub rewritten_filters: HashMap<Context, Expression>,
 }
 
@@ -32,7 +34,7 @@ impl StaticQueryRewriter {
             variable_constraints: variable_constraints.clone(),
             basic_time_series_queries: vec![],
             static_subqueries: HashMap::new(),
-            subquery_ntuples: vec![],
+            subqueries_in_context: vec![],
             rewritten_filters: HashMap::new(),
         }
     }

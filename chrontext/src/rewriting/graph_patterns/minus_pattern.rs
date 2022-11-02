@@ -1,6 +1,7 @@
 use super::StaticQueryRewriter;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
+use crate::rewriting::subqueries::{SubQuery, SubQueryInContext};
 use spargebra::algebra::GraphPattern;
 
 impl StaticQueryRewriter {
@@ -17,15 +18,15 @@ impl StaticQueryRewriter {
         let mut right_rewrite = self.rewrite_graph_pattern(right, &right_context);
         if left_rewrite.is_subquery || right_rewrite.is_subquery {
             if !left_rewrite.is_subquery {
-                self.create_add_subquery(left_rewrite, &left_context, PathEntry::MinusLeftSide);
+                self.create_add_subquery(left_rewrite, &left_context);
             }
             if !right_rewrite.is_subquery {
-                self.create_add_subquery(right_rewrite, &right_context, PathEntry::MinusRightSide);
+                self.create_add_subquery(right_rewrite, &right_context);
             }
-            self.subquery_ntuples.push(vec![
-                (PathEntry::LeftJoinLeftSide, left_context),
-                (PathEntry::LeftJoinRightSide, right_context),
-            ]);
+            self.subqueries_in_context.push(SubQueryInContext::new(
+                context.clone(),
+                SubQuery::Minus(left_context, right_context),
+            ));
             let mut ret = GPReturn::subquery(context.clone());
             return ret;
         }
@@ -48,14 +49,15 @@ impl StaticQueryRewriter {
                 })
                 .with_rewritten(true);
             return left_rewrite;
-        } else { // right rewritten
-            self.create_add_subquery(left_rewrite, &left_context, PathEntry::MinusLeftSide);
-            self.create_add_subquery(right_rewrite, &right_context, PathEntry::MinusRightSide);
+        } else {
+            // right rewritten
+            self.create_add_subquery(left_rewrite, &left_context);
+            self.create_add_subquery(right_rewrite, &right_context);
 
-            self.subquery_ntuples.push(vec![
-                (PathEntry::MinusLeftSide, left_context),
-                (PathEntry::MinusRightSide, right_context),
-            ]);
+            self.subqueries_in_context.push(SubQueryInContext::new(
+                context.clone(),
+                SubQuery::Minus(left_context, right_context),
+            ));
             let mut ret = GPReturn::subquery(context.clone());
             return ret;
         }

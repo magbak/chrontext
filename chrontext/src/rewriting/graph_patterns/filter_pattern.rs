@@ -2,6 +2,7 @@ use super::StaticQueryRewriter;
 use crate::change_types::ChangeType;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
+use crate::rewriting::subqueries::{SubQuery, SubQueryInContext};
 use spargebra::algebra::{Expression, GraphPattern};
 
 impl StaticQueryRewriter {
@@ -23,21 +24,25 @@ impl StaticQueryRewriter {
         if !expression_rewrite.pushups.is_empty() || inner_rewrite.is_subquery {
             let inner_subquery_context;
             if !inner_rewrite.is_subquery {
-                self.create_add_subquery(inner_rewrite, &inner_context, PathEntry::FilterInner);
+                self.create_add_subquery(inner_rewrite, &inner_context);
                 inner_subquery_context = inner_context.clone();
             } else {
                 inner_subquery_context = inner_rewrite.subquery_context.unwrap().clone();
             }
-            let mut subquery_vec = vec![(PathEntry::FilterInner, inner_subquery_context)];
+            let mut expression_subqueries_vec = vec![];
+
             for (gp, ctx) in expression_rewrite
                 .pushups
                 .iter()
                 .zip(expression_rewrite.pushup_contexts.iter())
             {
-                self.create_add_subquery(gp.clone(), &inner_context, PathEntry::FilterExpression);
-                subquery_vec.push((PathEntry::FilterExpression, inner_context.clone()))
+                self.create_add_subquery(gp.clone(), ctx);
+                expression_subqueries_vec.push(ctx.clone())
             }
-            self.subquery_ntuples.push(subquery_vec);
+            self.subqueries_in_context.push(SubQueryInContext::new(
+                context.clone(),
+                SubQuery::Filter(inner_subquery_context, expression_subqueries_vec),
+            ));
             let mut ret = GPReturn::subquery(context.clone());
             return ret;
         }

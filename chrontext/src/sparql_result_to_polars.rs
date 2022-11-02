@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use oxrdf::vocab::xsd;
 use oxrdf::{Literal, NamedNode, Term};
 use polars::export::chrono::{DateTime, NaiveDateTime, Utc};
@@ -10,7 +11,7 @@ use std::str::FromStr;
 pub(crate) fn create_static_query_result_df(
     static_query: &Query,
     static_query_solutions: Vec<QuerySolution>,
-) -> DataFrame {
+) -> (DataFrame, HashMap<String, NamedNode>) {
     let column_variables;
     if let Query::Select {
         dataset: _,

@@ -15,7 +15,6 @@ mod service_pattern;
 mod sliced_pattern;
 mod union_pattern;
 mod values_pattern;
-mod subqueries;
 
 use super::StaticQueryRewriter;
 use crate::query_context::Context;

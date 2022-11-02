@@ -45,7 +45,9 @@ impl StaticQueryRewriter {
             //Sort to make rewrites deterministic
             vars.sort_by_key(|v| v.to_string());
             for v in vars {
-                variables_rewrite.push(v.clone());
+                if !variables_rewrite.contains(v) {
+                    variables_rewrite.push(v.clone());
+                }
             }
         }
         let mut id_keys_sorted = gpreturn
@@ -59,7 +61,9 @@ impl StaticQueryRewriter {
             //Sort to make rewrites deterministic
             vars.sort_by_key(|v| v.to_string());
             for v in vars {
-                variables_rewrite.push(v.clone());
+                if !variables_rewrite.contains(v) {
+                    variables_rewrite.push(v.clone());
+                }
             }
         }
         let mut additional_projections_sorted = self
