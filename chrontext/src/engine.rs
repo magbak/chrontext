@@ -47,6 +47,7 @@ impl Engine {
     pub fn new(
         pushdown_settings: HashSet<PushdownSetting>,
         time_series_database: Box<dyn TimeSeriesQueryable>,
+        endpoint: String,
     ) -> Engine {
         Engine {
             pushdown_settings,
@@ -57,7 +58,6 @@ impl Engine {
     pub async fn execute_hybrid_query(
         &mut self,
         query: &str,
-        endpoint: &str,
     ) -> Result<DataFrame, Box<dyn Error>> {
         let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {:?}", &parsed_query);

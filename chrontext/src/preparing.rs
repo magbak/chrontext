@@ -1,5 +1,5 @@
 mod expressions;
-mod graph_patterns;
+pub(crate) mod graph_patterns;
 mod synchronization;
 
 use crate::pushdown_setting::PushdownSetting;
@@ -13,9 +13,7 @@ use std::collections::{HashMap, HashSet};
 #[derive(Debug)]
 pub struct TimeSeriesQueryPrepper {
     pushdown_settings: HashSet<PushdownSetting>,
-    allow_compound_timeseries_queries: bool,
     basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
-    pub static_result_df: DataFrame,
     grouping_counter: u16,
     rewritten_filters: HashMap<Context, Expression>,
 }
@@ -23,16 +21,12 @@ pub struct TimeSeriesQueryPrepper {
 impl TimeSeriesQueryPrepper {
     pub fn new(
         pushdown_settings: HashSet<PushdownSetting>,
-        allow_compound_timeseries_queries: bool,
         basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
-        static_result_df: DataFrame,
         rewritten_filters: HashMap<Context, Expression>,
     ) -> TimeSeriesQueryPrepper {
         TimeSeriesQueryPrepper {
-            allow_compound_timeseries_queries,
             pushdown_settings,
             basic_time_series_queries,
-            static_result_df,
             grouping_counter: 0,
             rewritten_filters,
         }

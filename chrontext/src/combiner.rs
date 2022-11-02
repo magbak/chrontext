@@ -1,36 +1,61 @@
 mod join_timeseries;
 pub(crate) mod lazy_aggregate;
 pub(crate) mod lazy_expressions;
+pub(crate) mod lazy_graph_patterns;
 mod lazy_order;
-mod lazy_triple;
-mod lazy_graph_patterns;
+pub(crate) mod lazy_triple;
+pub(crate) mod static_subqueries;
 
 use crate::combiner::lazy_aggregate::sparql_aggregate_expression_as_lazy_column_and_expression;
 use crate::query_context::{Context, PathEntry};
 
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::preparing::TimeSeriesQueryPrepper;
+use crate::pushdown_setting::PushdownSetting;
+use crate::rewriting::subqueries::SubQueryInContext;
+use crate::timeseries_database::TimeSeriesQueryable;
+use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
 use oxrdf::Variable;
 use polars::frame::DataFrame;
 use polars::prelude::{col, Expr, IntoLazy, LazyFrame, UniqueKeepStrategy};
-use spargebra::algebra::{AggregateExpression, GraphPattern};
+use spargebra::algebra::{AggregateExpression, Expression, GraphPattern};
 use spargebra::Query;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub struct Combiner {
     counter: u16,
+    endpoint: String,
+    time_series_database: Box<dyn TimeSeriesQueryable>,
+    static_query_map: HashMap<Context, Query>,
+    static_subqueries_in_context: Vec<SubQueryInContext>,
+    prepper: TimeSeriesQueryPrepper,
 }
 
 impl Combiner {
-    pub fn new() -> Combiner {
-        Combiner { counter: 0 }
+    pub fn new(
+        endpoint: String,
+        pushdown_settings: HashSet<PushdownSetting>,
+        time_series_database: Box<dyn TimeSeriesQueryable>,
+        basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
+        static_query_map: HashMap<Context, Query>,
+        rewritten_filters: HashMap<Context, Expression>,
+        static_subqueries_in_context: Vec<SubQueryInContext>,
+    ) -> Combiner {
+        let prepper = TimeSeriesQueryPrepper::new(
+            pushdown_settings,
+            basic_time_series_queries,
+            rewritten_filters,
+        );
+        Combiner {
+            counter: 0,
+            endpoint,
+            time_series_database,
+            static_query_map,
+            static_subqueries_in_context,
+            prepper,
+        }
     }
 
-    pub fn combine_static_and_time_series_results(
-        &mut self,
-        query: &Query,
-        static_result_df: DataFrame,
-        time_series: &mut Vec<(TimeSeriesQuery, DataFrame)>,
-    ) -> LazyFrame {
+    pub async fn combine_static_and_time_series_results(&mut self, query: &Query) -> LazyFrame {
         let project_variables;
         let inner_graph_pattern;
         let mut distinct = false;
@@ -78,75 +103,6 @@ impl Combiner {
             lf = lf.unique_stable(None, UniqueKeepStrategy::First);
         }
         lf
-    }
-
-    fn lazy_group_without_pushdown(
-        &mut self,
-        columns: &mut HashSet<String>,
-        input_lf: LazyFrame,
-        inner: &Box<GraphPattern>,
-        variables: &Vec<Variable>,
-        aggregates: &Vec<(Variable, AggregateExpression)>,
-        time_series: &mut Vec<(TimeSeriesQuery, DataFrame)>,
-        context: &Context,
-    ) -> LazyFrame {
-        let mut lazy_inner = self.lazy_graph_pattern(
-            columns,
-            input_lf,
-            inner,
-            time_series,
-            &context.extension_with(PathEntry::GroupInner),
-        );
-        let by: Vec<Expr> = variables.iter().map(|v| col(v.as_str())).collect();
-
-        let time_series_identifier_names = get_timeseries_identifier_names(time_series);
-        let mut column_variables = vec![];
-        for v in columns.iter() {
-            if time_series_identifier_names.contains(v) {
-                continue;
-            }
-            column_variables.push(v.clone());
-        }
-        let mut aggregate_expressions = vec![];
-        let mut aggregate_inner_contexts = vec![];
-        for i in 0..aggregates.len() {
-            let aggregate_context = context.extension_with(PathEntry::GroupAggregation(i as u16));
-            let (v, a) = aggregates.get(i).unwrap();
-            let (lf, expr, used_context) =
-                sparql_aggregate_expression_as_lazy_column_and_expression(
-                    v,
-                    a,
-                    &column_variables,
-                    columns,
-                    lazy_inner,
-                    time_series,
-                    &aggregate_context,
-                );
-            lazy_inner = lf;
-            aggregate_expressions.push(expr);
-            if let Some(aggregate_inner_context) = used_context {
-                aggregate_inner_contexts.push(aggregate_inner_context);
-            }
-        }
-
-        let lazy_group_by = lazy_inner.groupby(by.as_slice());
-
-        let aggregated_lf = lazy_group_by
-            .agg(aggregate_expressions.as_slice())
-            .drop_columns(
-                aggregate_inner_contexts
-                    .iter()
-                    .map(|x| x.as_str())
-                    .collect::<Vec<&str>>(),
-            );
-        columns.clear();
-        for v in variables {
-            columns.insert(v.as_str().to_string());
-        }
-        for (v, _) in aggregates {
-            columns.insert(v.as_str().to_string());
-        }
-        aggregated_lf
     }
 }
 
