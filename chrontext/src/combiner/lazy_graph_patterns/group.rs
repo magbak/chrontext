@@ -22,36 +22,8 @@ impl Combiner {
         prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
     ) -> Result<LazyFrame, CombinerError> {
-        let mut new_prepared_time_series_queries = prepared_time_series_queries;
-        let mut updated_constraints = constraints;
-        if let Some(query) = self.static_query_map.get(&context) {
-            let (static_result_df, datatypes) = self.execute_static_query(
-                query,
-                &constraints,
-            );
-            let mut wrap_lf = WrapLF::new(static_result_df.lazy());
-            let GPPrepReturn{ time_series_queries, .. } = self
-                .prepper
-                .prepare_group(inner, by, aggregates, false, &mut wrap_lf, &context);
-            new_prepared_time_series_queries = time_series_queries;
-            updated_constraints = Some(update_constraints(&mut updated_constraints, wrap_lf.lf.collect().unwrap(), datatypes))
-        }
-
-        if let Some(tsqs) = &prepared_time_series_queries {
-            if let Some(tsq) = tsqs.get(context) {
-                let ts_df = self.time_series_database.execute(tsq).await.map_err(|x|CombinerError::TimeSeriesQueryError(x))?;
-                let ts_lf = ts_df.lazy();
-                assert!(updated_constraints.is_some());
-                if let Some(ConstrainingSolutionMapping { solution_mapping, .. }) = updated_constraints {
-                    let on = tsq.get_groupby_column().unwrap();
-                    let lf = solution_mapping.lazy().join(ts_lf, [on], [on], JoinType::Inner );
-                    return Ok(lf)
-                }
-            }
-        }
-
         let inner_context = context.extension_with(PathEntry::GroupInner);
-        let (mut lazy_inner, mut columns) = self.lazy_graph_pattern(columns, output_lf, inner, &inner_context);
+        let (mut lazy_inner, mut columns) = self.lazy_graph_pattern(columns, constraints, prepared_time_series_queries, &inner_context);
         let by: Vec<Expr> = variables.iter().map(|v| col(v.as_str())).collect();
 
         let mut aggregate_expressions = vec![];

@@ -19,13 +19,13 @@ impl Combiner {
         context: &Context,
     ) -> Result<LazyGraphPatternReturn, CombinerError> {
         let mut left_columns = columns.clone();
-        let original_timeseries_columns = get_timeseries_identifier_names(time_series);
-        let mut left_lf = self.lazy_graph_pattern(
+        let mut left_ret = self.lazy_graph_pattern(
             &mut left_columns,
             input_lf.clone(),
-            left,
+            constraints.clone(),
+            prepared_time_series_queries.clone()
             &context.extension_with(PathEntry::UnionLeftSide),
-        );
+        )?;
         let mut right_columns = columns.clone();
         let mut right_input_lf = input_lf;
         for t in &original_timeseries_columns {

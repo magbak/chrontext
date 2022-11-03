@@ -17,13 +17,13 @@ impl Combiner {
         prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
     ) -> Result<LazyGraphPatternReturn, CombinerError> {
-        self.lazy_graph_pattern(
+        let LazyGraphPatternReturn{ lf, columns } = self.lazy_graph_pattern(
             columns,
-            input_lf,
             inner,
+            constraints,
             prepared_time_series_queries,
             &context.extension_with(PathEntry::DistinctInner),
-        )
-        .unique_stable(None, UniqueKeepStrategy::First)
+        )?;
+        Ok(LazyGraphPatternReturn::new(lf.unique_stable(None, UniqueKeepStrategy::First), columns.unwrap()))
     }
 }
