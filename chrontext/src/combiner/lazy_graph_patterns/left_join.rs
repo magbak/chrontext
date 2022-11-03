@@ -1,10 +1,14 @@
+use std::collections::HashMap;
 use super::Combiner;
-use crate::combiner::get_timeseries_identifier_names;
+use crate::combiner::{CombinerError, get_timeseries_identifier_names};
 use crate::combiner::lazy_expressions::lazy_expression;
 use crate::query_context::{Context, PathEntry};
 use polars::prelude::{col, concat, Expr, IntoLazy, LazyFrame, LiteralValue};
 use spargebra::algebra::{Expression, GraphPattern};
 use std::ops::Not;
+use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
+use crate::combiner::lazy_graph_patterns::LazyGraphPatternReturn;
+use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
     pub(crate) fn lazy_left_join(
@@ -12,15 +16,17 @@ impl Combiner {
         left: &GraphPattern,
         right: &GraphPattern,
         expression: &Option<Expression>,
-        input_lf: Option<LazyFrame>,
+        constraints: Option<ConstrainingSolutionMapping>,
+        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> LazyFrame {
+    ) -> Result<LazyGraphPatternReturn, CombinerError> {
         let left_join_distinct_column = context.as_str();
         let mut left_df = self
             .lazy_graph_pattern(
                 columns,
                 input_lf,
                 left,
+                prepared_time_series_queries
                 &context.extension_with(PathEntry::LeftJoinLeftSide),
             )
             .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&left_join_distinct_column))
@@ -33,6 +39,7 @@ impl Combiner {
             columns,
             left_df.clone().lazy(),
             right,
+            prepared_time_series_queries
             &context.extension_with(PathEntry::LeftJoinRightSide),
         );
 

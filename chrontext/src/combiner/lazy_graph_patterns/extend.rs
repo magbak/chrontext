@@ -1,9 +1,13 @@
+use std::collections::HashMap;
 use oxrdf::Variable;
 use super::Combiner;
 use crate::query_context::{Context, PathEntry};
 use polars::prelude::LazyFrame;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::term::TriplePattern;
+use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
+use crate::combiner::lazy_expressions::lazy_expression;
+use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
     pub(crate) fn lazy_extend(
@@ -11,9 +15,10 @@ impl Combiner {
         inner: &GraphPattern,
         variable: &Variable,
         expression: &Expression,
-        input_lf: Option<LazyFrame>,
+        constraints: Option<ConstrainingSolutionMapping>,
+        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> LazyFrame {
+    ) -> Result<LazyGraphPatternReturn, CombinerError> {
         let inner_context = context.extension_with(PathEntry::ExtendInner);
         let mut inner_lf =
             self.lazy_graph_pattern(columns, input_lf, inner, &inner_context);

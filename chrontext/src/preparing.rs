@@ -1,6 +1,7 @@
 mod expressions;
 pub(crate) mod graph_patterns;
 mod synchronization;
+pub mod lf_wrap;
 
 use crate::pushdown_setting::PushdownSetting;
 use crate::query_context::Context;

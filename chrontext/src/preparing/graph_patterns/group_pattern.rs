@@ -9,10 +9,12 @@ use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::pushdown_setting::PushdownSetting;
 use crate::timeseries_query::{GroupedTimeSeriesQuery, TimeSeriesQuery};
 use oxrdf::Variable;
+use polars::prelude::LazyFrame;
 use polars_core::frame::DataFrame;
 use polars_core::prelude::{JoinType, UniqueKeepStrategy};
 use polars_core::series::Series;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
+use crate::preparing::lf_wrap::WrapLF;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_group(
@@ -21,6 +23,7 @@ impl TimeSeriesQueryPrepper {
         by: &Vec<Variable>,
         aggregations: &Vec<(Variable, AggregateExpression)>,
         try_groupby_complex_query: bool,
+        wrap_lf: &mut WrapLF,
         context: &Context,
     ) -> GPPrepReturn {
         if try_groupby_complex_query {
@@ -42,7 +45,7 @@ impl TimeSeriesQueryPrepper {
                     let grouping_col = self.add_grouping_col(by);
                     tsq = add_basic_groupby_mapping_values(
                         tsq,
-                        &self.static_result_df,
+                        static_result_df,
                         &grouping_col,
                     );
                     let tsfuncs = tsq.get_timeseries_functions(context);

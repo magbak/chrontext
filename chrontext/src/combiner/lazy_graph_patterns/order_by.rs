@@ -1,17 +1,23 @@
+use std::collections::HashMap;
 use super::Combiner;
 use crate::query_context::{Context, PathEntry};
 use polars::prelude::{col, Expr, LazyFrame};
 use spargebra::algebra::{GraphPattern, OrderExpression};
+use crate::combiner::CombinerError;
+use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
+use crate::combiner::lazy_graph_patterns::LazyGraphPatternReturn;
 use crate::combiner::lazy_order::lazy_order_expression;
+use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
     pub(crate) fn lazy_order_by(
         &mut self,
         inner: &GraphPattern,
         expression: &Vec<OrderExpression>,
-        input_lf: Option<LazyFrame>,
+        constraints: Option<ConstrainingSolutionMapping>,
+        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> LazyFrame {
+    ) -> Result<LazyGraphPatternReturn, CombinerError> {
         let mut inner_lf = self.lazy_graph_pattern(
                     columns,
                     input_lf,

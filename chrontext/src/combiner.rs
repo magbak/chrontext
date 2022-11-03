@@ -5,6 +5,7 @@ pub(crate) mod lazy_graph_patterns;
 mod lazy_order;
 pub(crate) mod lazy_triple;
 pub(crate) mod static_subqueries;
+mod constraining_solution_mapping;
 
 use crate::combiner::lazy_aggregate::sparql_aggregate_expression_as_lazy_column_and_expression;
 use crate::query_context::{Context, PathEntry};
@@ -20,6 +21,12 @@ use polars::prelude::{col, Expr, IntoLazy, LazyFrame, UniqueKeepStrategy};
 use spargebra::algebra::{AggregateExpression, Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
+
+#[derive(Debug)]
+pub enum CombinerError {
+    TimeSeriesQueryError(Box<dyn Error>)
+}
 
 pub struct Combiner {
     counter: u16,

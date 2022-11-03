@@ -1,18 +1,24 @@
+use std::collections::HashMap;
 use oxrdf::Variable;
 use super::Combiner;
 use crate::query_context::{Context, PathEntry};
 use polars::prelude::LazyFrame;
 use spargebra::algebra::GraphPattern;
 use spargebra::term::TriplePattern;
+use crate::combiner::CombinerError;
+use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
+use crate::combiner::lazy_graph_patterns::LazyGraphPatternReturn;
+use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
     pub(crate) fn lazy_project(
         &mut self,
         inner: &GraphPattern,
         variables: &Vec<Variable>,
-        input_lf: Option<LazyFrame>,
+        constraints: Option<ConstrainingSolutionMapping>,
+        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> LazyFrame {
+    ) -> Result<LazyGraphPatternReturn, CombinerError> {
         let inner_lf = self.lazy_graph_pattern(
             columns,
             input_lf,

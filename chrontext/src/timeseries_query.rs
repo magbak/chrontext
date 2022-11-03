@@ -26,7 +26,6 @@ pub enum Synchronizer {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupedTimeSeriesQuery {
     pub tsq: Box<TimeSeriesQuery>,
-    pub graph_pattern_context: Context,
     pub by: Vec<Variable>,
     pub aggregations: Vec<(Variable, AggregateExpression)>,
 }

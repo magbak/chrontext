@@ -17,6 +17,7 @@ mod sliced_pattern;
 mod union_pattern;
 mod values_pattern;
 
+use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
 use crate::query_context::Context;
 use crate::timeseries_query::TimeSeriesQuery;
@@ -25,7 +26,7 @@ use spargebra::algebra::GraphPattern;
 #[derive(Debug)]
 pub struct GPPrepReturn {
     pub fail_groupby_complex_query: bool,
-    pub time_series_queries: Vec<TimeSeriesQuery>,
+    pub time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
 }
 
 impl GPPrepReturn {
