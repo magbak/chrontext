@@ -10,8 +10,13 @@ impl Combiner {
     pub fn execute_static_query(
         &self,
         query: &Query,
-        constraints: &Option<SolutionMappings>,
-    ) -> (DataFrame, HashMap<Variable, NamedNode>) {
+        solution_mappings: Option<SolutionMappings>,
+    ) -> SolutionMappings {
+         let columns = static_result_df
+                .get_column_names()
+                .iter()
+                .map(|x| x.to_string())
+                .collect();
         todo!()
     }
 }
@@ -31,4 +36,25 @@ pub(crate) fn split_static_queries(
         new_map.insert(k, static_queries.remove(&k).unwrap())
     }
     new_map
+}
+
+pub(crate) fn split_static_queries_opt(
+    static_queries: &mut Option<HashMap<Context, Query>>,
+    context: &Context,
+) -> Option<HashMap<Context, Query>> {
+    if let Some(static_queries) = static_queries {
+        let mut split_keys = vec![];
+        for k in &static_queries.keys() {
+            if k.path.iter().zip(context.path()).map(|(x, y)| x == y).all() {
+                split_keys.push(k.clone())
+            }
+        }
+        let mut new_map = HashMap::new();
+        for k in split_keys {
+            new_map.insert(k, static_queries.remove(&k).unwrap())
+        }
+        Some(new_map)
+    } else {
+        None
+    }
 }

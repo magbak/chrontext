@@ -2,6 +2,10 @@ mod exists_helper;
 
 use super::Combiner;
 use crate::combiner::lazy_expressions::exists_helper::rewrite_exists_graph_pattern;
+use crate::combiner::solution_mapping::SolutionMappings;
+use crate::combiner::static_subqueries::{split_static_queries_opt};
+use crate::combiner::time_series_queries::split_time_series_queries;
+use crate::combiner::CombinerError;
 use crate::constants::{
     DATETIME_AS_NANOS, DATETIME_AS_SECONDS, NANOS_AS_DATETIME, SECONDS_AS_DATETIME,
 };
@@ -12,56 +16,79 @@ use crate::sparql_result_to_polars::{
 use crate::timeseries_query::TimeSeriesQuery;
 use oxrdf::vocab::xsd;
 use polars::datatypes::DataType;
-use polars::frame::DataFrame;
 use polars::functions::concat_str;
 use polars::lazy::dsl::is_not_null;
-use polars::prelude::{
-    col, lit, Expr, IntoLazy, LazyFrame, LiteralValue, Operator, Series, TimeUnit,
-    UniqueKeepStrategy,
-};
+use polars::prelude::{col, lit, Expr, LiteralValue, Operator, Series, TimeUnit, UniqueKeepStrategy, IntoLazy};
 use polars_core::prelude::IntoSeries;
 use spargebra::algebra::{Expression, Function};
-use std::collections::{HashMap, HashSet};
-use std::ops::{Div, Mul};
 use spargebra::Query;
-use crate::combiner::CombinerError;
-use crate::combiner::solution_mapping::SolutionMappings;
+use std::collections::{HashMap};
+use std::ops::{Div, Mul};
+use async_recursion::async_recursion;
 
 impl Combiner {
+    #[async_recursion]
     pub async fn lazy_expression(
         &mut self,
         expr: &Expression,
-        solution_mappings: SolutionMappings,
+        mut solution_mappings: SolutionMappings,
         mut static_query_map: Option<HashMap<Context, Query>>,
         mut prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
-        let lf = match expr {
+        let output_solution_mappings = match expr {
             Expression::NamedNode(nn) => {
-                let inner_lf = inner_lf.with_column(
+                solution_mappings.mappings = solution_mappings.mappings.with_column(
                     Expr::Literal(sparql_named_node_to_polars_literal_value(nn))
                         .alias(context.as_str()),
                 );
-                inner_lf
+                solution_mappings
             }
             Expression::Literal(lit) => {
-                let inner_lf = inner_lf.with_column(
+                solution_mappings.mappings = solution_mappings.mappings.with_column(
                     Expr::Literal(sparql_literal_to_polars_literal_value(lit))
                         .alias(context.as_str()),
                 );
-                inner_lf
+                solution_mappings
             }
             Expression::Variable(v) => {
-                let inner_lf = inner_lf.with_column(col(v.as_str()).alias(context.as_str()));
-                inner_lf
+                solution_mappings.mappings = solution_mappings
+                    .mappings
+                    .with_column(col(v.as_str()).alias(context.as_str()));
+                solution_mappings
             }
             Expression::Or(left, right) => {
                 let left_context = context.extension_with(PathEntry::OrLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::OrRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
-                inner_lf = inner_lf
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -71,15 +98,39 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::And(left, right) => {
                 let left_context = context.extension_with(PathEntry::AndLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::AndRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
-                inner_lf = inner_lf
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -89,15 +140,35 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::Equal(left, right) => {
                 let left_context = context.extension_with(PathEntry::EqualLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::EqualRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
-                inner_lf = inner_lf
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
+                    right,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
+                    &right_context,
+                ).await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -107,18 +178,38 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::SameTerm(_, _) => {
                 todo!("Not implemented")
             }
             Expression::Greater(left, right) => {
                 let left_context = context.extension_with(PathEntry::GreaterLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::GreaterRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
-                inner_lf = inner_lf
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
+                    right,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
+                    &right_context,
+                ).await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -128,16 +219,36 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::GreaterOrEqual(left, right) => {
                 let left_context = context.extension_with(PathEntry::GreaterOrEqualLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::GreaterOrEqualRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
+                    right,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
+                    &right_context,
+                ).await?;
 
-                inner_lf = inner_lf
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -147,15 +258,35 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::Less(left, right) => {
                 let left_context = context.extension_with(PathEntry::LessLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::LessRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
-                inner_lf = inner_lf
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
+                    right,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
+                    &right_context,
+                ).await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -165,16 +296,36 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::LessOrEqual(left, right) => {
                 let left_context = context.extension_with(PathEntry::LessOrEqualLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::LessOrEqualRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
+                    right,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
+                    &right_context,
+                ).await?;
 
-                inner_lf = inner_lf
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -184,24 +335,38 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::In(left, right) => {
                 let left_context = context.extension_with(PathEntry::InLeft);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
                 let right_contexts: Vec<Context> = (0..right.len())
                     .map(|i| context.extension_with(PathEntry::InRight(i as u16)))
                     .collect();
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 for i in 0..right.len() {
                     let expr = right.get(i).unwrap();
-                    inner_lf = self.lazy_expression(
+                    let expr_context = right_contexts.get(i).unwrap();
+                    let expr_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &expr_context);
+                    let expr_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &expr_context);
+                    output_solution_mappings = self.lazy_expression(
                         expr,
-                        inner_lf,
-                        columns,
-                        prepared_time_series_queries,
-                        right_contexts.get(i).unwrap(),
-                    );
+                        output_solution_mappings,
+                        expr_static_query_map,
+                        expr_prepared_time_series_queries,
+                        expr_context,
+                    ).await?;
                 }
                 let mut expr = Expr::Literal(LiteralValue::Boolean(false));
 
@@ -216,7 +381,8 @@ impl Combiner {
                         }),
                     }
                 }
-                inner_lf = inner_lf
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(expr.alias(context.as_str()))
                     .drop_columns([left_context.as_str()])
                     .drop_columns(
@@ -225,15 +391,35 @@ impl Combiner {
                             .map(|x| x.as_str())
                             .collect::<Vec<&str>>(),
                     );
-                inner_lf
+                output_solution_mappings
             }
             Expression::Add(left, right) => {
                 let left_context = context.extension_with(PathEntry::AddLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::AddRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
-                inner_lf = inner_lf
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
+                    right,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
+                    &right_context,
+                ).await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -243,15 +429,35 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::Subtract(left, right) => {
                 let left_context = context.extension_with(PathEntry::SubtractLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::SubtractRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
-                inner_lf = inner_lf
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
+                    right,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
+                    &right_context,
+                ).await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -261,21 +467,36 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::Multiply(left, right) => {
                 let left_context = context.extension_with(PathEntry::MultiplyLeft);
-                let mut inner_lf = self.lazy_expression(
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
                     left,
-                    inner_lf,
-                    columns,
-                    prepared_time_series_queries,
-                    &context.extension_with(PathEntry::MultiplyLeft),
-                );
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::MultiplyRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
+                    right,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
+                    &right_context,
+                ).await?;
 
-                inner_lf = inner_lf
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -285,16 +506,36 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::Divide(left, right) => {
                 let left_context = context.extension_with(PathEntry::DivideLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::DivideRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
+                    right,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
+                    &right_context,
+                ).await?;
 
-                inner_lf = inner_lf
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(col(left_context.as_str())),
@@ -304,13 +545,20 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([left_context.as_str(), right_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::UnaryPlus(inner) => {
                 let plus_context = context.extension_with(PathEntry::UnaryPlus);
-                let mut inner_lf =
-                    self.lazy_expression(inner, inner_lf, columns, static_query_map, prepared_time_series_queries, &plus_context);
-                inner_lf = inner_lf
+                
+                let mut output_solution_mappings = self.lazy_expression(
+                    inner,
+                    solution_mappings,
+                    static_query_map,
+                    prepared_time_series_queries,
+                    &plus_context,
+                ).await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(Expr::Literal(LiteralValue::Int32(0))),
@@ -320,13 +568,19 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([&plus_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::UnaryMinus(inner) => {
                 let minus_context = context.extension_with(PathEntry::UnaryMinus);
-                let mut inner_lf =
-                    self.lazy_expression(inner, inner_lf, columns, static_query_map, prepared_time_series_queries, &minus_context);
-                inner_lf = inner_lf
+                let mut output_solution_mappings = self.lazy_expression(
+                    inner,
+                    solution_mappings,
+                    static_query_map,
+                    prepared_time_series_queries,
+                    &minus_context,
+                ).await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::BinaryExpr {
                             left: Box::new(Expr::Literal(LiteralValue::Int32(0))),
@@ -336,38 +590,40 @@ impl Combiner {
                         .alias(context.as_str()),
                     )
                     .drop_columns([&minus_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::Not(inner) => {
                 let not_context = context.extension_with(PathEntry::Not);
-                let mut inner_lf =
-                    self.lazy_expression(inner, inner_lf, columns, static_query_map, prepared_time_series_queries, &not_context);
-                inner_lf = inner_lf
+                let mut output_solution_mappings = self.lazy_expression(
+                    inner,
+                    solution_mappings,
+                    static_query_map,
+                    prepared_time_series_queries,
+                    &not_context,
+                ).await?;
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(col(&not_context.as_str()).not().alias(context.as_str()))
                     .drop_columns([&not_context.as_str()]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::Exists(inner) => {
                 let exists_context = context.extension_with(PathEntry::Exists);
-                let mut lf = inner_lf.with_column(
+                let mut output_solution_mappings = solution_mappings;
+                output_solution_mappings.mappings = output_solution_mappings.mappings.with_column(
                     Expr::Literal(LiteralValue::Int64(1)).alias(&exists_context.as_str()),
-                );
-                lf = lf
-                    .with_column(col(&exists_context.as_str()).cumsum(false).keep_name());
-                let constraints = SolutionMappings {
-                    mappings: lf,
-                    columns: Default::default(),
-                    datatypes: Default::default(),
-                };
+                ).with_column(col(&exists_context.as_str()).cumsum(false).keep_name());
+
                 let new_inner = rewrite_exists_graph_pattern(inner, &exists_context.as_str());
-                let exists_lf = self.lazy_graph_pattern(
+                let SolutionMappings{ mappings: exists_lf, .. } = self.lazy_graph_pattern(
                     &new_inner,
-                    &mut columns.clone(),
-                    df.clone().lazy(),
-                    &new_inner,
+                    Some(output_solution_mappings.clone()),
+                    static_query_map.unwrap(),
                     prepared_time_series_queries,
                     &exists_context,
-                );
+                ).await?;
+                let SolutionMappings {mappings, columns, datatypes} = output_solution_mappings;
+                let mut df = mappings.collect().unwrap();
                 let exists_df = exists_lf
                     .select([col(&exists_context.as_str())])
                     .unique(None, UniqueKeepStrategy::First)
@@ -382,27 +638,52 @@ impl Combiner {
                 ser.rename(context.as_str());
                 df.with_column(ser).unwrap();
                 df = df.drop(&exists_context.as_str()).unwrap();
-                df.lazy()
+                SolutionMappings::new(df.lazy(), columns, datatypes)
             }
             Expression::Bound(v) => {
-                inner_lf.with_column(col(v.as_str()).is_null().alias(context.as_str()))
+                solution_mappings.mappings = solution_mappings.mappings.with_column(col(v.as_str()).is_null().alias(context.as_str()));
+                solution_mappings
             }
             Expression::If(left, middle, right) => {
                 let left_context = context.extension_with(PathEntry::IfLeft);
-                let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
+                 let left_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+                let left_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &left_context);
+                let mut output_solution_mappings = self.lazy_expression(
+                    left,
+                    solution_mappings,
+                    left_static_query_map,
+                    left_prepared_time_series_queries,
+                    &left_context,
+                ).await?;
                 let middle_context = context.extension_with(PathEntry::IfMiddle);
-                inner_lf = self.lazy_expression(middle, inner_lf, columns, static_query_map, prepared_time_series_queries, &middle_context);
+                let middle_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &middle_context);
+                let middle_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &middle_context);
+                output_solution_mappings = self.lazy_expression(
+                    middle,
+                    output_solution_mappings,
+                    middle_static_query_map,
+                    middle_prepared_time_series_queries,
+                    &middle_context,
+                ).await?;
                 let right_context = context.extension_with(PathEntry::IfRight);
-                inner_lf = self.lazy_expression(
+                let right_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+                let right_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &right_context);
+                output_solution_mappings = self.lazy_expression(
                     right,
-                    inner_lf,
-                    columns,
-                    prepared_time_series_queries,
+                    output_solution_mappings,
+                    right_static_query_map,
+                    right_prepared_time_series_queries,
                     &context.extension_with(PathEntry::IfRight),
-                );
+                ).await?;
 
-                inner_lf = inner_lf
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(
                         (Expr::Ternary {
                             predicate: Box::new(col(left_context.as_str())),
@@ -416,21 +697,26 @@ impl Combiner {
                         middle_context.as_str(),
                         right_context.as_str(),
                     ]);
-                inner_lf
+                output_solution_mappings
             }
             Expression::Coalesce(inner) => {
                 let inner_contexts: Vec<Context> = (0..inner.len())
                     .map(|i| context.extension_with(PathEntry::Coalesce(i as u16)))
                     .collect();
-                let mut inner_lf = inner_lf;
+                let mut output_solution_mappings = solution_mappings;
                 for i in 0..inner.len() {
-                    inner_lf = self.lazy_expression(
+                    let inner_context = inner_contexts.get(i).unwrap();
+                    let inner_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &inner_context);
+                    let inner_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &inner_context);
+                    output_solution_mappings = self.lazy_expression(
                         inner.get(i).unwrap(),
-                        inner_lf,
-                        columns,
-                        prepared_time_series_queries,
-                        inner_contexts.get(i).unwrap(),
-                    );
+                        output_solution_mappings,
+                        inner_static_query_map,
+                        inner_prepared_time_series_queries,
+                        inner_context,
+                    ).await?;
                 }
 
                 let coalesced_context = inner_contexts.get(0).unwrap();
@@ -442,7 +728,8 @@ impl Combiner {
                         falsy: Box::new(col(c.as_str())),
                     }
                 }
-                inner_lf = inner_lf
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
                     .with_column(coalesced.alias(context.as_str()))
                     .drop_columns(
                         inner_contexts
@@ -450,110 +737,127 @@ impl Combiner {
                             .map(|c| c.as_str())
                             .collect::<Vec<&str>>(),
                     );
-                inner_lf
+                output_solution_mappings
             }
             Expression::FunctionCall(func, args) => {
                 let args_contexts: Vec<Context> = (0..args.len())
                     .map(|i| context.extension_with(PathEntry::FunctionCall(i as u16)))
                     .collect();
-                let mut inner_lf = inner_lf;
+                let mut output_solution_mappings = solution_mappings;
                 for i in 0..args.len() {
-                    inner_lf = self.lazy_expression(
-                        args.get(i).unwrap(),
-                        inner_lf,
-                        columns,
-                        prepared_time_series_queries,
-                        args_contexts.get(i).unwrap(),
-                    )
-                    .collect()
-                    .unwrap()
-                    .lazy(); //TODO: workaround for stack overflow - post bug?
+                    let arg_context = args_contexts.get(i).unwrap();
+                    let arg_prepared_time_series_queries =
+                    split_time_series_queries(&mut prepared_time_series_queries, &arg_context);
+                    let arg_static_query_map =
+                    split_static_queries_opt(&mut static_query_map, &arg_context);
+                    output_solution_mappings = self
+                        .lazy_expression(
+                            args.get(i).unwrap(),
+                            output_solution_mappings,
+                            arg_static_query_map,
+                            arg_prepared_time_series_queries,
+                            arg_context,
+                        ).await?;
+                    output_solution_mappings.mappings = output_solution_mappings.mappings
+                        .collect()
+                        .unwrap()
+                        .lazy(); //TODO: workaround for stack overflow - post bug?
                 }
                 match func {
                     Function::Year => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str())
-                                .dt()
-                                .year()
-                                .alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str())
+                                    .dt()
+                                    .year()
+                                    .alias(context.as_str()),
+                            );
                     }
                     Function::Month => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str())
-                                .dt()
-                                .month()
-                                .alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str())
+                                    .dt()
+                                    .month()
+                                    .alias(context.as_str()),
+                            );
                     }
                     Function::Day => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str())
-                                .dt()
-                                .day()
-                                .alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str())
+                                    .dt()
+                                    .day()
+                                    .alias(context.as_str()),
+                            );
                     }
                     Function::Hours => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str())
-                                .dt()
-                                .hour()
-                                .alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str())
+                                    .dt()
+                                    .hour()
+                                    .alias(context.as_str()),
+                            );
                     }
                     Function::Minutes => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str())
-                                .dt()
-                                .minute()
-                                .alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str())
+                                    .dt()
+                                    .minute()
+                                    .alias(context.as_str()),
+                            );
                     }
                     Function::Seconds => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str())
-                                .dt()
-                                .second()
-                                .alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str())
+                                    .dt()
+                                    .second()
+                                    .alias(context.as_str()),
+                            );
                     }
                     Function::Abs => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str()).abs().alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str()).abs().alias(context.as_str()),
+                            );
                     }
                     Function::Ceil => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str()).ceil().alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str()).ceil().alias(context.as_str()),
+                            );
                     }
                     Function::Floor => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str()).floor().alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str()).floor().alias(context.as_str()),
+                            );
                     }
                     Function::Concat => {
                         assert!(args.len() > 1);
-                        let mut inner_df = inner_lf.collect().unwrap();
+                        let SolutionMappings { mappings, columns, datatypes } = output_solution_mappings;
+                        let mut inner_df = mappings.collect().unwrap();
                         let series = args_contexts
                             .iter()
                             .map(|c| inner_df.column(c.as_str()).unwrap().clone())
@@ -562,71 +866,78 @@ impl Combiner {
                             concat_str(series.as_slice(), "").unwrap().into_series();
                         concat_series.rename(context.as_str());
                         inner_df.with_column(concat_series).unwrap();
-                        inner_lf = inner_df.lazy();
+                        output_solution_mappings = SolutionMappings::new(inner_df.lazy(), columns, datatypes)
                     }
                     Function::Round => {
                         assert_eq!(args.len(), 1);
                         let first_context = args_contexts.get(0).unwrap();
-                        inner_lf = inner_lf.with_column(
-                            col(&first_context.as_str())
-                                .round(0)
-                                .alias(context.as_str()),
-                        );
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                col(&first_context.as_str())
+                                    .round(0)
+                                    .alias(context.as_str()),
+                            );
                     }
                     Function::Custom(nn) => {
                         let iri = nn.as_str();
                         if iri == xsd::INTEGER.as_str() {
                             assert_eq!(args.len(), 1);
                             let first_context = args_contexts.get(0).unwrap();
-                            inner_lf = inner_lf.with_column(
-                                col(&first_context.as_str())
-                                    .cast(DataType::Int64)
-                                    .alias(context.as_str()),
-                            );
+                            output_solution_mappings.mappings =
+                                output_solution_mappings.mappings.with_column(
+                                    col(&first_context.as_str())
+                                        .cast(DataType::Int64)
+                                        .alias(context.as_str()),
+                                );
                         } else if iri == xsd::STRING.as_str() {
                             assert_eq!(args.len(), 1);
                             let first_context = args_contexts.get(0).unwrap();
-                            inner_lf = inner_lf.with_column(
-                                col(&first_context.as_str())
-                                    .cast(DataType::Utf8)
-                                    .alias(context.as_str()),
-                            );
+                            output_solution_mappings.mappings =
+                                output_solution_mappings.mappings.with_column(
+                                    col(&first_context.as_str())
+                                        .cast(DataType::Utf8)
+                                        .alias(context.as_str()),
+                                );
                         } else if iri == DATETIME_AS_NANOS {
                             assert_eq!(args.len(), 1);
                             let first_context = args_contexts.get(0).unwrap();
-                            inner_lf = inner_lf.with_column(
-                                col(&first_context.as_str())
-                                    .cast(DataType::Datetime(TimeUnit::Nanoseconds, None))
-                                    .cast(DataType::UInt64)
-                                    .alias(context.as_str()),
-                            );
+                            output_solution_mappings.mappings =
+                                output_solution_mappings.mappings.with_column(
+                                    col(&first_context.as_str())
+                                        .cast(DataType::Datetime(TimeUnit::Nanoseconds, None))
+                                        .cast(DataType::UInt64)
+                                        .alias(context.as_str()),
+                                );
                         } else if iri == DATETIME_AS_SECONDS {
                             assert_eq!(args.len(), 1);
                             let first_context = args_contexts.get(0).unwrap();
-                            inner_lf = inner_lf.with_column(
-                                col(&first_context.as_str())
-                                    .cast(DataType::Datetime(TimeUnit::Milliseconds, None))
-                                    .cast(DataType::UInt64)
-                                    .div(lit(1000))
-                                    .alias(context.as_str()),
-                            );
+                            output_solution_mappings.mappings =
+                                output_solution_mappings.mappings.with_column(
+                                    col(&first_context.as_str())
+                                        .cast(DataType::Datetime(TimeUnit::Milliseconds, None))
+                                        .cast(DataType::UInt64)
+                                        .div(lit(1000))
+                                        .alias(context.as_str()),
+                                );
                         } else if iri == NANOS_AS_DATETIME {
                             assert_eq!(args.len(), 1);
                             let first_context = args_contexts.get(0).unwrap();
-                            inner_lf = inner_lf.with_column(
-                                col(&first_context.as_str())
-                                    .cast(DataType::Datetime(TimeUnit::Nanoseconds, None))
-                                    .alias(context.as_str()),
-                            );
+                            output_solution_mappings.mappings =
+                                output_solution_mappings.mappings.with_column(
+                                    col(&first_context.as_str())
+                                        .cast(DataType::Datetime(TimeUnit::Nanoseconds, None))
+                                        .alias(context.as_str()),
+                                );
                         } else if iri == SECONDS_AS_DATETIME {
                             assert_eq!(args.len(), 1);
                             let first_context = args_contexts.get(0).unwrap();
-                            inner_lf = inner_lf.with_column(
-                                col(&first_context.as_str())
-                                    .mul(Expr::Literal(LiteralValue::UInt64(1000)))
-                                    .cast(DataType::Datetime(TimeUnit::Milliseconds, None))
-                                    .alias(context.as_str()),
-                            );
+                            output_solution_mappings.mappings =
+                                output_solution_mappings.mappings.with_column(
+                                    col(&first_context.as_str())
+                                        .mul(Expr::Literal(LiteralValue::UInt64(1000)))
+                                        .cast(DataType::Datetime(TimeUnit::Milliseconds, None))
+                                        .alias(context.as_str()),
+                                );
                         } else {
                             todo!("{:?}", nn)
                         }
@@ -635,14 +946,15 @@ impl Combiner {
                         todo!()
                     }
                 }
-                inner_lf.drop_columns(
+                output_solution_mappings.mappings = output_solution_mappings.mappings.drop_columns(
                     args_contexts
                         .iter()
                         .map(|x| x.as_str())
                         .collect::<Vec<&str>>(),
-                )
+                );
+                output_solution_mappings
             }
         };
-        lf
+        Ok(output_solution_mappings)
     }
 }

@@ -6,7 +6,6 @@ pub mod lf_wrap;
 use crate::pushdown_setting::PushdownSetting;
 use crate::query_context::Context;
 use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
-use polars_core::frame::DataFrame;
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};

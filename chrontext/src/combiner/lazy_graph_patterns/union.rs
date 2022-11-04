@@ -5,7 +5,7 @@ use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
-use polars::prelude::{concat};
+use polars::prelude::concat;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
@@ -50,7 +50,7 @@ impl Combiner {
 
         let SolutionMappings {
             mappings: right_mappings,
-            columns: mut right_columns,
+            columns: right_columns,
             datatypes: mut right_datatypes,
         } = self
             .lazy_graph_pattern(
@@ -62,15 +62,20 @@ impl Combiner {
             )
             .await?;
 
-        let output_mappings = concat(vec![left_mappings, right_mappings], true, true).expect("Concat problem");
+        let output_mappings =
+            concat(vec![left_mappings, right_mappings], true, true).expect("Concat problem");
         left_columns.extend(right_columns);
         for (v, dt) in right_datatypes.drain() {
             if let Some(left_dt) = left_datatypes.get(&v) {
                 assert_eq!(&dt, left_dt);
             } else {
-                left_datatypes.insert(v,dt);
+                left_datatypes.insert(v, dt);
             }
         }
-        Ok(SolutionMappings::new(output_mappings, left_columns, left_datatypes))
+        Ok(SolutionMappings::new(
+            output_mappings,
+            left_columns,
+            left_datatypes,
+        ))
     }
 }

@@ -1,10 +1,8 @@
 use crate::constants::NEST;
 use crate::query_context::{Context, PathEntry};
-use crate::timeseries_query::TimeSeriesQuery;
 use oxrdf::Variable;
-use polars::prelude::{col, DataFrame, DataType, Expr, GetOutput, IntoSeries, LazyFrame};
+use polars::prelude::{col, DataType, Expr, GetOutput, IntoSeries};
 use spargebra::algebra::AggregateExpression;
-use std::collections::{HashMap, HashSet};
 use crate::combiner::solution_mapping::SolutionMappings;
 use super::Combiner;
 
