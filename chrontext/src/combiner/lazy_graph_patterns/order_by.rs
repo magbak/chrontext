@@ -7,8 +7,10 @@ use polars::prelude::{col, Expr};
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
 use std::collections::HashMap;
+use async_recursion::async_recursion;
 
 impl Combiner {
+    #[async_recursion]
     pub(crate) async fn lazy_order_by(
         &mut self,
         inner: &GraphPattern,
@@ -38,7 +40,7 @@ impl Combiner {
                     expression.get(i).unwrap(),
                     output_solution_mappings,
                     order_expression_contexts.get(i).unwrap(),
-                );
+                ).await?;
             output_solution_mappings = ordering_solution_mappings;
             inner_contexts.push(inner_context);
             asc_ordering.push(reverse);

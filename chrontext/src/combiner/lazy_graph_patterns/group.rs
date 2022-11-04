@@ -40,7 +40,7 @@ impl Combiner {
                     a,
                     output_solution_mappings,
                     &aggregate_context,
-                );
+                ).await?;
             output_solution_mappings = aggregate_solution_mappings;
             aggregate_expressions.push(expr);
             if let Some(aggregate_inner_context) = used_context {

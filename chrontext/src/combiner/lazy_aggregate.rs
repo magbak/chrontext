@@ -3,41 +3,42 @@ use crate::query_context::{Context, PathEntry};
 use oxrdf::Variable;
 use polars::prelude::{col, DataType, Expr, GetOutput, IntoSeries};
 use spargebra::algebra::AggregateExpression;
+use crate::combiner::CombinerError;
 use crate::combiner::solution_mapping::SolutionMappings;
 use super::Combiner;
 
 impl Combiner {
-    pub fn sparql_aggregate_expression_as_lazy_column_and_expression(
+    pub async fn sparql_aggregate_expression_as_lazy_column_and_expression(
         &mut self,
         variable: &Variable,
         aggregate_expression: &AggregateExpression,
         solution_mappings:SolutionMappings,
         context: &Context,
-    ) -> (SolutionMappings, Expr, Option<Context>) {
-        let out_lf;
+    ) -> Result<(SolutionMappings, Expr, Option<Context>), CombinerError> {
+        let output_solution_mappings;
         let mut out_expr;
         let column_context;
         match aggregate_expression {
             AggregateExpression::Count { expr, distinct } => {
                 if let Some(some_expr) = expr {
                     column_context = Some(context.extension_with(PathEntry::AggregationOperation));
-                    out_lf = self.lazy_expression(
+                    output_solution_mappings = self.lazy_expression(
                         some_expr,
                         solution_mappings,
                         None,
                         None,
                         column_context.as_ref().unwrap(),
-                    );
+                    ).await?;
                     if *distinct {
                         out_expr = col(column_context.as_ref().unwrap().as_str()).n_unique();
                     } else {
                         out_expr = col(column_context.as_ref().unwrap().as_str()).count();
                     }
                 } else {
-                    out_lf = lf;
+                    output_solution_mappings = solution_mappings;
                     column_context = None;
-
-                    let columns_expr = Expr::Columns(all_proper_column_names.clone());
+                    let all_proper_column_names:Vec<String> = output_solution_mappings.columns.iter().map(|x|x.clone()).collect();
+                    let columns_expr = Expr::Columns(all_proper_column_names);
                     if *distinct {
                         out_expr = columns_expr.n_unique();
                     } else {
@@ -48,13 +49,13 @@ impl Combiner {
             AggregateExpression::Sum { expr, distinct } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
 
-                out_lf = self.lazy_expression(
+                output_solution_mappings = self.lazy_expression(
                     expr,
-                    lf,
-                    columns,
+                    solution_mappings,
+                    None,
                     None,
                     column_context.as_ref().unwrap(),
-                );
+                ).await?;
 
                 if *distinct {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
@@ -66,13 +67,13 @@ impl Combiner {
             }
             AggregateExpression::Avg { expr, distinct } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
-                out_lf = self.lazy_expression(
+                output_solution_mappings = self.lazy_expression(
                     expr,
-                    lf,
-                    columns,
+                    solution_mappings,
+                    None,
                     None,
                     column_context.as_ref().unwrap(),
-                );
+                ).await?;
 
                 if *distinct {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
@@ -85,26 +86,26 @@ impl Combiner {
             AggregateExpression::Min { expr, distinct: _ } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
 
-                out_lf = self.lazy_expression(
+                output_solution_mappings = self.lazy_expression(
                     expr,
-                    lf,
-                    columns,
+                    solution_mappings,
+                    None,
                     None,
                     column_context.as_ref().unwrap(),
-                );
+                ).await?;
 
                 out_expr = col(column_context.as_ref().unwrap().as_str()).min();
             }
             AggregateExpression::Max { expr, distinct: _ } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
 
-                out_lf = self.lazy_expression(
+                output_solution_mappings = self.lazy_expression(
                     expr,
-                    lf,
-                    columns,
+                    solution_mappings,
+                    None,
                     None,
                     column_context.as_ref().unwrap(),
-                );
+                ).await?;
 
                 out_expr = col(column_context.as_ref().unwrap().as_str()).max();
             }
@@ -115,13 +116,13 @@ impl Combiner {
             } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
 
-                out_lf = self.lazy_expression(
+                output_solution_mappings = self.lazy_expression(
                     expr,
-                    lf,
-                    columns,
+                    solution_mappings,
+                    None,
                     None,
                     column_context.as_ref().unwrap(),
-                );
+                ).await?;
 
                 let use_sep = if let Some(sep) = separator {
                     sep.to_string()
@@ -156,13 +157,13 @@ impl Combiner {
             AggregateExpression::Sample { expr, .. } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
 
-                out_lf = self.lazy_expression(
+                output_solution_mappings = self.lazy_expression(
                     expr,
-                    lf,
-                    columns,
+                    solution_mappings,
+                    None,
                     None,
                     column_context.as_ref().unwrap(),
-                );
+                ).await?;
 
                 out_expr = col(column_context.as_ref().unwrap().as_str()).first();
             }
@@ -175,13 +176,13 @@ impl Combiner {
                 if iri == NEST {
                     column_context = Some(context.extension_with(PathEntry::AggregationOperation));
 
-                    out_lf = self.lazy_expression(
+                    output_solution_mappings = self.lazy_expression(
                         expr,
-                        lf,
-                        columns,
+                        solution_mappings,
+                        None,
                         None,
                         column_context.as_ref().unwrap(),
-                    );
+                    ).await?;
                     out_expr = col(column_context.as_ref().unwrap().as_str()).list();
                 } else {
                     panic!("Custom aggregation not supported")
@@ -189,6 +190,6 @@ impl Combiner {
             }
         }
         out_expr = out_expr.alias(variable.as_str());
-        (out_lf, out_expr, column_context)
+        Ok((output_solution_mappings, out_expr, column_context))
     }
 }

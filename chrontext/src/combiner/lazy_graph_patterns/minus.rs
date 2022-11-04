@@ -11,8 +11,10 @@ use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
 use std::ops::Not;
+use async_recursion::async_recursion;
 
 impl Combiner {
+    #[async_recursion]
     pub(crate) async fn lazy_minus(
         &mut self,
         left: &GraphPattern,

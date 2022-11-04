@@ -7,8 +7,10 @@ use spargebra::Query;
 use crate::combiner::CombinerError;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::timeseries_query::TimeSeriesQuery;
+use async_recursion::async_recursion;
 
 impl Combiner {
+    #[async_recursion]
     pub(crate) async fn lazy_distinct(
         &mut self,
         inner: &GraphPattern,

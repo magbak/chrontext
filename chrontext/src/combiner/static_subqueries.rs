@@ -44,7 +44,7 @@ pub(crate) fn split_static_queries_opt(
 ) -> Option<HashMap<Context, Query>> {
     if let Some(static_queries) = static_queries {
         let mut split_keys = vec![];
-        for k in &static_queries.keys() {
+        for k in static_queries.keys() {
             if k.path.iter().zip(context.path()).map(|(x, y)| x == y).all() {
                 split_keys.push(k.clone())
             }

@@ -9,8 +9,10 @@ use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::timeseries_query::TimeSeriesQuery;
+use async_recursion::async_recursion;
 
 impl Combiner {
+    #[async_recursion]
     pub(crate) async fn lazy_extend(
         &mut self,
         inner: &GraphPattern,

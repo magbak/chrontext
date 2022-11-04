@@ -9,7 +9,7 @@ use polars::frame::DataFrame;
 use std::error::Error;
 
 #[async_trait]
-pub trait TimeSeriesQueryable {
+pub trait TimeSeriesQueryable: Send {
     async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>>;
     fn allow_compound_timeseries_queries(&self) -> bool;
 }

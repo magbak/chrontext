@@ -18,8 +18,10 @@ use crate::timeseries_query::TimeSeriesQuery;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
+use async_recursion::async_recursion;
 
 impl Combiner {
+    #[async_recursion]
     pub(crate) async fn lazy_graph_pattern(
         &mut self,
         graph_pattern: &GraphPattern,
@@ -56,7 +58,7 @@ impl Combiner {
         if static_query_map.is_empty()
             && (new_prepared_time_series_queries.is_none()
                 || (new_prepared_time_series_queries.is_some()
-                    && new_prepared_time_series_queries.unwrap().as_ref().is_empty()))
+                    && new_prepared_time_series_queries.as_ref().unwrap().is_empty()))
         {
             return Ok(updated_solution_mappings.unwrap());
         }

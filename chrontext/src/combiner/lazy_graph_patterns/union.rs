@@ -9,8 +9,10 @@ use polars::prelude::concat;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
+use async_recursion::async_recursion;
 
 impl Combiner {
+    #[async_recursion]
     pub(crate) async fn lazy_union(
         &mut self,
         left: &GraphPattern,
