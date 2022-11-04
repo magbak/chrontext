@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use oxrdf::vocab::xsd;
-use oxrdf::{Literal, NamedNode, Term};
+use oxrdf::{Literal, NamedNode, Term, Variable};
 use polars::export::chrono::{DateTime, NaiveDateTime, Utc};
 use polars::prelude::{DataFrame, LiteralValue, NamedFrom, Series, TimeUnit};
 use sparesults::QuerySolution;
@@ -8,7 +8,7 @@ use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::str::FromStr;
 
-pub(crate) fn create_static_query_result_df(
+pub(crate) fn create_static_query_dataframe(
     static_query: &Query,
     static_query_solutions: Vec<QuerySolution>,
 ) -> (DataFrame, HashMap<String, NamedNode>) {
@@ -35,22 +35,36 @@ pub(crate) fn create_static_query_result_df(
     }
 
     let mut series_vec = vec![];
+    let mut datatypes = HashMap::new();
+    'outer: for c in &column_variables {
+        for s in &static_query_solutions {
+            if let Some(term) = s.get(c) {
+                match term {
+                    Term::NamedNode(n) => {datatypes.insert(c.as_str().to_string(), xsd::ANY_URI.into_owned())}
+                    Term::Literal(l) => {datatypes.insert(c.as_str().to_string(), l.datatype().into_owned())}
+                    _ => {panic!("Not supported")} //Blank node
+                }
+                continue 'outer
+            }
+        }
+    }
+
     for c in &column_variables {
-        let literal_values = static_query_solutions
-            .iter()
-            .map(|x| {
-                if let Some(term) = x.get(c) {
-                    sparql_term_to_polars_literal_value(term)
+        let literal_values = vec![];
+        for s in &static_query_solutions {
+            iteral_values.push(
+            if let Some(term) = s.get(c) {
+                    sparql_term_to_polars_literal_value(term);
                 } else {
                     LiteralValue::Null
-                }
-            })
-            .collect();
+                });
+            }
+
         let series = polars_literal_values_to_series(literal_values, c.as_str());
         series_vec.push(series);
     }
     let df = DataFrame::new(series_vec).expect("Create df problem");
-    df
+    (df, datatypes)
 }
 
 pub(crate) fn sparql_term_to_polars_literal_value(term: &Term) -> polars::prelude::LiteralValue {

@@ -1,8 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use super::Combiner;
 use crate::combiner::CombinerError;
 use crate::timeseries_query::TimeSeriesQuery;
-use polars::prelude::{col, Expr, IntoLazy, LazyFrame};
+use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::prelude::JoinType;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::query_context::Context;
@@ -50,7 +50,7 @@ pub(crate) fn split_time_series_queries(time_series_queries: &mut Option<HashMap
         }
         let mut new_map = HashMap::new();
         for k in split_keys {
-            new_map.insert(k, tsqs.remove(&k).unwrap())
+            new_map.insert(k, tsqs.remove(&k).unwrap());
         }
         Some(new_map)
     } else {
