@@ -2,11 +2,10 @@ use std::collections::HashMap;
 use log::debug;
 use super::Combiner;
 use crate::query_context::{Context, PathEntry};
-use polars::prelude::LazyFrame;
+use polars::prelude::{col, Expr, LazyFrame, LiteralValue};
 use spargebra::algebra::GraphPattern;
 use crate::combiner::CombinerError;
 use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
-use crate::combiner::lazy_graph_patterns::LazyGraphPatternReturn;
 use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
@@ -15,17 +14,17 @@ impl Combiner {
         left: &GraphPattern,
         right: &GraphPattern,
         constraints: Option<ConstrainingSolutionMapping>,
-        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        prepared_time_series_queries: &mut Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> Result<LazyGraphPatternReturn, CombinerError> {
+    ) -> Result< ConstrainingSolutionMapping, CombinerError> {
         let minus_column = "minus_column".to_string() + self.counter.to_string().as_str();
         self.counter += 1;
         debug!("Left graph pattern {}", left);
         let mut left_df = self
             .lazy_graph_pattern(
-                columns,
-                input_lf,
                 left,
+                input_lf,
+                prepared_time_series_queries,
                 &context.extension_with(PathEntry::MinusLeftSide),
             )
             .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&minus_column))
@@ -37,9 +36,9 @@ impl Combiner {
         //TODO: determine only variables actually used before copy
         let right_df = self
             .lazy_graph_pattern(
-                columns,
-                left_df.clone().lazy(),
                 right,
+                left_df.clone().lazy(),
+                prepared_time_series_queries,
                 &context.extension_with(PathEntry::MinusRightSide),
             )
             .select([col(&minus_column)])

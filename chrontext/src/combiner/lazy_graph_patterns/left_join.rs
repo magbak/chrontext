@@ -7,7 +7,6 @@ use polars::prelude::{col, concat, Expr, IntoLazy, LazyFrame, LiteralValue};
 use spargebra::algebra::{Expression, GraphPattern};
 use std::ops::Not;
 use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
-use crate::combiner::lazy_graph_patterns::LazyGraphPatternReturn;
 use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
@@ -19,16 +18,17 @@ impl Combiner {
         constraints: Option<ConstrainingSolutionMapping>,
         prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> Result<LazyGraphPatternReturn, CombinerError> {
+    ) -> Result< ConstrainingSolutionMapping, CombinerError> {
         let left_join_distinct_column = context.as_str();
+        let left_context = context.extension_with(PathEntry::LeftJoinLeftSide);
+        let right_context = context.extension_with(PathEntry::LeftJoinRightSide);
         let mut left_df = self
             .lazy_graph_pattern(
-                columns,
-                input_lf,
                 left,
-                prepared_time_series_queries
-                &context.extension_with(PathEntry::LeftJoinLeftSide),
-            )
+                constraints,
+                prepared_time_series_queries,
+                &left_context,
+            )?
             .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&left_join_distinct_column))
             .with_column(col(&left_join_distinct_column).cumsum(false).keep_name())
             .collect()
@@ -36,11 +36,10 @@ impl Combiner {
 
         let ts_identifiers = get_timeseries_identifier_names(time_series);
         let mut right_lf = self.lazy_graph_pattern(
-            columns,
-            left_df.clone().lazy(),
             right,
+            left_df.clone().lazy(),
             prepared_time_series_queries
-            &context.extension_with(PathEntry::LeftJoinRightSide),
+            &right_context,
         );
 
         if let Some(expr) = expression {

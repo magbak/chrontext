@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use super::Combiner;
 use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
 use crate::combiner::lazy_expressions::lazy_expression;
-use crate::combiner::lazy_graph_patterns::LazyGraphPatternReturn;
+use crate::combiner::lazy_graph_patterns:: ConstrainingSolutionMapping;
 use crate::combiner::CombinerError;
 use crate::timeseries_query::TimeSeriesQuery;
 use polars::prelude::{col, Expr, IntoLazy, LazyFrame};

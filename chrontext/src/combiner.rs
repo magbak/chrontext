@@ -3,7 +3,6 @@ pub(crate) mod lazy_aggregate;
 pub(crate) mod lazy_expressions;
 pub(crate) mod lazy_graph_patterns;
 mod lazy_order;
-pub(crate) mod lazy_triple;
 pub(crate) mod static_subqueries;
 mod constraining_solution_mapping;
 pub(crate) mod time_series_queries;

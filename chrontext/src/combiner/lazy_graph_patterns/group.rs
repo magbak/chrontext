@@ -8,7 +8,6 @@ use polars_core::prelude::JoinType;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use crate::combiner::{CombinerError, get_timeseries_identifier_names};
 use crate::combiner::constraining_solution_mapping::{ConstrainingSolutionMapping, update_constraints};
-use crate::combiner::lazy_aggregate::sparql_aggregate_expression_as_lazy_column_and_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::lf_wrap::WrapLF;
 
@@ -22,6 +21,8 @@ impl Combiner {
         prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
     ) -> Result<LazyFrame, CombinerError> {
+
+
         let inner_context = context.extension_with(PathEntry::GroupInner);
         let (mut lazy_inner, mut columns) = self.lazy_graph_pattern(columns, constraints, prepared_time_series_queries, &inner_context);
         let by: Vec<Expr> = variables.iter().map(|v| col(v.as_str())).collect();
@@ -32,7 +33,7 @@ impl Combiner {
             let aggregate_context = context.extension_with(PathEntry::GroupAggregation(i as u16));
             let (v, a) = aggregates.get(i).unwrap();
             let (lf, expr, used_context) =
-                sparql_aggregate_expression_as_lazy_column_and_expression(
+                self.sparql_aggregate_expression_as_lazy_column_and_expression(
                     v,
                     a,
                     &column_variables,

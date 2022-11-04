@@ -6,7 +6,6 @@ use polars_core::frame::UniqueKeepStrategy;
 use spargebra::algebra::GraphPattern;
 use crate::combiner::CombinerError;
 use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
-use crate::combiner::lazy_graph_patterns::LazyGraphPatternReturn;
 use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
@@ -16,14 +15,13 @@ impl Combiner {
         constraints: Option<ConstrainingSolutionMapping>,
         prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> Result<LazyGraphPatternReturn, CombinerError> {
-        let LazyGraphPatternReturn{ lf, columns } = self.lazy_graph_pattern(
-            columns,
+    ) -> Result< ConstrainingSolutionMapping, CombinerError> {
+        let  ConstrainingSolutionMapping{ solution_mapping, columns, datatypes } = self.lazy_graph_pattern(
             inner,
             constraints,
             prepared_time_series_queries,
             &context.extension_with(PathEntry::DistinctInner),
         )?;
-        Ok(LazyGraphPatternReturn::new(lf.unique_stable(None, UniqueKeepStrategy::First), columns.unwrap()))
+        Ok( ConstrainingSolutionMapping::new(lf.unique_stable(None, UniqueKeepStrategy::First), columns.unwrap()))
     }
 }
