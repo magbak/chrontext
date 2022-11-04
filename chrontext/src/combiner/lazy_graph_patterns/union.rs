@@ -5,8 +5,7 @@ use polars::prelude::{concat, LazyFrame};
 use polars_core::frame::UniqueKeepStrategy;
 use spargebra::algebra::GraphPattern;
 use crate::combiner::CombinerError;
-use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
-use crate::combiner::lazy_graph_patterns:: ConstrainingSolutionMapping;
+use crate::combiner::lazy_graph_patterns::SolutionMappings;
 use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
@@ -14,15 +13,15 @@ impl Combiner {
         &mut self,
         left: &GraphPattern,
         right: &GraphPattern,
-        constraints: Option<ConstrainingSolutionMapping>,
+        solution_mapping: Option<SolutionMappings>,
         prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> Result< ConstrainingSolutionMapping, CombinerError> {
+    ) -> Result<SolutionMappings, CombinerError> {
         let mut left_columns = columns.clone();
         let mut left_ret = self.lazy_graph_pattern(
             &mut left_columns,
             input_lf.clone(),
-            constraints.clone(),
+            solution_mapping.clone(),
             prepared_time_series_queries.clone()
             &context.extension_with(PathEntry::UnionLeftSide),
         )?;

@@ -19,4 +19,3 @@ pub mod splitter;
 pub mod static_sparql;
 pub mod timeseries_database;
 pub mod timeseries_query;
-mod static_execution;

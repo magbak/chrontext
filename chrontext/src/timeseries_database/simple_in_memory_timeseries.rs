@@ -1,5 +1,3 @@
-use crate::combiner::lazy_aggregate::sparql_aggregate_expression_as_lazy_column_and_expression;
-use crate::combiner::lazy_expressions::lazy_expression;
 use crate::constants::GROUPING_COL;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_database::TimeSeriesQueryable;

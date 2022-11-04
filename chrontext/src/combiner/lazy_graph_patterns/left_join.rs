@@ -1,62 +1,100 @@
-use std::collections::HashMap;
 use super::Combiner;
-use crate::combiner::{CombinerError, get_timeseries_identifier_names};
-use crate::combiner::lazy_expressions::lazy_expression;
+use crate::combiner::solution_mapping::SolutionMappings;
+use crate::combiner::static_subqueries::split_static_queries;
+use crate::combiner::time_series_queries::split_time_series_queries;
+use crate::combiner::{CombinerError};
 use crate::query_context::{Context, PathEntry};
-use polars::prelude::{col, concat, Expr, IntoLazy, LazyFrame, LiteralValue};
-use spargebra::algebra::{Expression, GraphPattern};
-use std::ops::Not;
-use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
 use crate::timeseries_query::TimeSeriesQuery;
+use polars::prelude::{col, concat, Expr, IntoLazy, LiteralValue};
+use spargebra::algebra::{Expression, GraphPattern};
+use spargebra::Query;
+use std::collections::HashMap;
+use std::ops::Not;
 
 impl Combiner {
-    pub(crate) fn lazy_left_join(
+    pub(crate) async fn lazy_left_join(
         &mut self,
         left: &GraphPattern,
         right: &GraphPattern,
         expression: &Option<Expression>,
-        constraints: Option<ConstrainingSolutionMapping>,
-        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        solution_mapping: Option<SolutionMappings>,
+        mut static_query_map: HashMap<Context, Query>,
+        mut prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> Result< ConstrainingSolutionMapping, CombinerError> {
+    ) -> Result<SolutionMappings, CombinerError> {
         let left_join_distinct_column = context.as_str();
         let left_context = context.extension_with(PathEntry::LeftJoinLeftSide);
         let right_context = context.extension_with(PathEntry::LeftJoinRightSide);
-        let mut left_df = self
+        let expression_context = context.extension_with(PathEntry::LeftJoinExpression);
+        let left_prepared_time_series_queries =
+            split_time_series_queries(&mut prepared_time_series_queries, &left_context);
+        let right_prepared_time_series_queries =
+            split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+        let expression_prepared_time_series_queries =
+            split_time_series_queries(&mut prepared_time_series_queries, &right_context);
+        let left_static_query_map = split_static_queries(&mut static_query_map, &left_context);
+        let right_static_query_map = split_static_queries(&mut static_query_map, &right_context);
+        let expression_static_query_map =
+            split_static_queries(&mut static_query_map, &expression_context);
+        assert!(static_query_map.is_empty());
+        assert!(if let Some(tsqs) = &prepared_time_series_queries {
+            tsqs.is_empty()
+        } else {
+            true
+        });
+        let left_solution_mappings = self
             .lazy_graph_pattern(
                 left,
-                constraints,
-                prepared_time_series_queries,
+                solution_mapping,
+                left_static_query_map,
+                left_prepared_time_series_queries,
                 &left_context,
-            )?
+            )
+            .await?;
+        let SolutionMappings {
+            mappings,
+            columns: mut left_columns,
+            datatypes: mut left_datatypes,
+        } = left_solution_mappings.clone();
+        let mut left_df = mappings
             .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&left_join_distinct_column))
             .with_column(col(&left_join_distinct_column).cumsum(false).keep_name())
             .collect()
             .expect("Left join collect left problem");
 
-        let ts_identifiers = get_timeseries_identifier_names(time_series);
-        let mut right_lf = self.lazy_graph_pattern(
-            right,
-            left_df.clone().lazy(),
-            prepared_time_series_queries
-            &right_context,
-        );
+        let mut right_solution_mappings = self
+            .lazy_graph_pattern(
+                right,
+                Some(left_solution_mappings),
+                right_static_query_map,
+                right_prepared_time_series_queries,
+                &right_context,
+            )
+            .await?;
 
         if let Some(expr) = expression {
-            let expression_context = context.extension_with(PathEntry::LeftJoinExpression);
-            right_lf = lazy_expression(expr, right_lf, columns, time_series, &expression_context);
-            right_lf = right_lf
+            right_solution_mappings = self
+                .lazy_expression(
+                    expr,
+                    right_solution_mappings,
+                    Some(expression_static_query_map),
+                    expression_prepared_time_series_queries,
+                    &expression_context,
+                )
+                .await?;
+            right_solution_mappings.mappings = right_solution_mappings
+                .mappings
                 .filter(col(&expression_context.as_str()))
                 .drop_columns([&expression_context.as_str()]);
         }
+        let SolutionMappings {
+            mappings: right_mappings,
+            columns: right_columns,
+            datatypes: mut right_datatypes,
+        } = right_solution_mappings;
 
-        let right_df = right_lf.collect().expect("Collect right problem");
+        let right_df = right_mappings.collect().expect("Collect right problem");
 
-        for id in ts_identifiers {
-            if !columns.contains(&id) {
-                left_df = left_df.drop(&id).expect("Drop problem");
-            }
-        }
         left_df = left_df
             .filter(
                 &left_df
@@ -98,6 +136,15 @@ impl Combiner {
             .collect()
             .expect("Left join collect problem")
             .lazy();
-        output_lf
+        for (v, nn) in right_datatypes.drain() {
+            left_datatypes.insert(v, nn);
+        }
+        left_columns.extend(right_columns);
+
+        Ok(SolutionMappings::new(
+            output_lf,
+            left_columns,
+            left_datatypes,
+        ))
     }
 }

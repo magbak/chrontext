@@ -1,27 +1,26 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use super::Combiner;
-use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
-use crate::combiner::lazy_expressions::lazy_expression;
-use crate::combiner::lazy_graph_patterns:: ConstrainingSolutionMapping;
 use crate::combiner::CombinerError;
 use crate::timeseries_query::TimeSeriesQuery;
 use polars::prelude::{col, Expr, IntoLazy, LazyFrame};
 use polars_core::prelude::JoinType;
+use crate::combiner::solution_mapping::SolutionMappings;
+use crate::query_context::Context;
 
 impl Combiner {
-    pub fn execute_attach_time_series_query(
+    pub async fn execute_attach_time_series_query(
         &mut self,
         tsq: &TimeSeriesQuery,
-        constraints: &ConstrainingSolutionMapping,
-    ) -> Result<(LazyFrame, HashSet<String>), CombinerError> {
+        constraints: &SolutionMappings,
+    ) -> Result<SolutionMappings, CombinerError> {
         let ts_df = self
             .time_series_database
             .execute(tsq)
             .await
             .map_err(|x| CombinerError::TimeSeriesQueryError(x))?;
         let ts_lf = ts_df.lazy();
-        let ConstrainingSolutionMapping {
-            solution_mapping, ..
+        let SolutionMappings {
+            mappings: solution_mapping, ..
         } = constraints;
         let on: Vec<Expr>;
         if let Some(colname) = tsq.get_groupby_column() {
@@ -40,3 +39,22 @@ impl Combiner {
         return Ok((lf, columns));
     }
 }
+
+pub(crate) fn split_time_series_queries(time_series_queries: &mut Option<HashMap<Context, TimeSeriesQuery>>, context:&Context) -> Option<HashMap<Context, TimeSeriesQuery>> {
+    if let Some(tsqs) = time_series_queries {
+        let mut split_keys = vec![];
+        for k in &tsqs.keys() {
+            if k.path.iter().zip(context.path()).map(|(x, y)| x == y).all() {
+                split_keys.push(k.clone())
+            }
+        }
+        let mut new_map = HashMap::new();
+        for k in split_keys {
+            new_map.insert(k, tsqs.remove(&k).unwrap())
+        }
+        Some(new_map)
+    } else {
+        None
+    }
+}
+

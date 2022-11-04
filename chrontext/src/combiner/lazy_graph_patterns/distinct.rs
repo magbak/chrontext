@@ -1,27 +1,29 @@
 use std::collections::HashMap;
 use super::Combiner;
 use crate::query_context::{Context, PathEntry};
-use polars::prelude::LazyFrame;
 use polars_core::frame::UniqueKeepStrategy;
 use spargebra::algebra::GraphPattern;
+use spargebra::Query;
 use crate::combiner::CombinerError;
-use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
-    pub(crate) fn lazy_distinct(
+    pub(crate) async fn lazy_distinct(
         &mut self,
         inner: &GraphPattern,
-        constraints: Option<ConstrainingSolutionMapping>,
+        solution_mappings: Option<SolutionMappings>,
+        static_query_map: HashMap<Context, Query>,
         prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> Result< ConstrainingSolutionMapping, CombinerError> {
-        let  ConstrainingSolutionMapping{ solution_mapping, columns, datatypes } = self.lazy_graph_pattern(
+    ) -> Result<SolutionMappings, CombinerError> {
+        let SolutionMappings { mappings, columns, datatypes } = self.lazy_graph_pattern(
             inner,
-            constraints,
+            solution_mappings,
+            static_query_map,
             prepared_time_series_queries,
             &context.extension_with(PathEntry::DistinctInner),
-        )?;
-        Ok( ConstrainingSolutionMapping::new(lf.unique_stable(None, UniqueKeepStrategy::First), columns.unwrap()))
+        ).await?;
+        Ok( SolutionMappings::new(mappings.unique_stable(None, UniqueKeepStrategy::First), columns, datatypes))
     }
 }

@@ -2,29 +2,31 @@ use std::collections::HashMap;
 use super::Combiner;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
-use oxrdf::{NamedNode, Variable};
-use polars::prelude::{col, Expr, IntoLazy, LazyFrame};
-use polars_core::prelude::JoinType;
+use oxrdf::{Variable};
+use polars::prelude::{col, Expr};
 use spargebra::algebra::{AggregateExpression, GraphPattern};
-use crate::combiner::{CombinerError, get_timeseries_identifier_names};
-use crate::combiner::constraining_solution_mapping::{ConstrainingSolutionMapping, update_constraints};
-use crate::preparing::graph_patterns::GPPrepReturn;
-use crate::preparing::lf_wrap::WrapLF;
+use spargebra::Query;
+use crate::combiner::{CombinerError};
+use crate::combiner::solution_mapping::SolutionMappings;
+use crate::combiner::static_subqueries::split_static_queries;
+use crate::combiner::time_series_queries::split_time_series_queries;
 
 impl Combiner {
-    pub(crate) fn lazy_group(
+    pub(crate) async fn lazy_group(
         &mut self,
         inner: &GraphPattern,
         variables: &Vec<Variable>,
         aggregates: &Vec<(Variable, AggregateExpression)>,
-        constraints: Option<ConstrainingSolutionMapping>,
-        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        solution_mapping: Option<SolutionMappings>,
+        mut static_query_map: HashMap<Context, Query>,
+        mut prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> Result<LazyFrame, CombinerError> {
-
-
+    ) -> Result<SolutionMappings, CombinerError> {
         let inner_context = context.extension_with(PathEntry::GroupInner);
-        let (mut lazy_inner, mut columns) = self.lazy_graph_pattern(columns, constraints, prepared_time_series_queries, &inner_context);
+        let inner_prepared_time_series_queries = split_time_series_queries(&mut prepared_time_series_queries, &inner_context);
+        let inner_static_query_map = split_static_queries(&mut static_query_map, &inner_context);
+
+        let mut output_solution_mappings = self.lazy_graph_pattern(inner, solution_mapping, inner_static_query_map, inner_prepared_time_series_queries, &inner_context).await?;
         let by: Vec<Expr> = variables.iter().map(|v| col(v.as_str())).collect();
 
         let mut aggregate_expressions = vec![];
@@ -32,26 +34,23 @@ impl Combiner {
         for i in 0..aggregates.len() {
             let aggregate_context = context.extension_with(PathEntry::GroupAggregation(i as u16));
             let (v, a) = aggregates.get(i).unwrap();
-            let (lf, expr, used_context) =
+            let (aggregate_solution_mappings, expr, used_context) =
                 self.sparql_aggregate_expression_as_lazy_column_and_expression(
                     v,
                     a,
-                    &column_variables,
-                    columns,
-                    lazy_inner,
-                    time_series,
+                    output_solution_mappings,
                     &aggregate_context,
                 );
-            lazy_inner = lf;
+            output_solution_mappings = aggregate_solution_mappings;
             aggregate_expressions.push(expr);
             if let Some(aggregate_inner_context) = used_context {
                 aggregate_inner_contexts.push(aggregate_inner_context);
             }
         }
+        let SolutionMappings { mut mappings, mut columns, datatypes } = output_solution_mappings;
+        let grouped_mappings = mappings.groupby(by.as_slice());
 
-        let lazy_group_by = lazy_inner.groupby(by.as_slice());
-
-        let aggregated_lf = lazy_group_by
+        mappings = grouped_mappings
             .agg(aggregate_expressions.as_slice())
             .drop_columns(
                 aggregate_inner_contexts
@@ -66,6 +65,6 @@ impl Combiner {
         for (v, _) in aggregates {
             columns.insert(v.as_str().to_string());
         }
-        Ok(aggregated_lf)
+        Ok(SolutionMappings::new(mappings, columns, datatypes))
     }
 }

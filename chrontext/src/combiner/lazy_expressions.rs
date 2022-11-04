@@ -1,7 +1,6 @@
 mod exists_helper;
 
 use super::Combiner;
-use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
 use crate::combiner::lazy_expressions::exists_helper::rewrite_exists_graph_pattern;
 use crate::constants::{
     DATETIME_AS_NANOS, DATETIME_AS_SECONDS, NANOS_AS_DATETIME, SECONDS_AS_DATETIME,
@@ -24,16 +23,19 @@ use polars_core::prelude::IntoSeries;
 use spargebra::algebra::{Expression, Function};
 use std::collections::{HashMap, HashSet};
 use std::ops::{Div, Mul};
+use spargebra::Query;
+use crate::combiner::CombinerError;
+use crate::combiner::solution_mapping::SolutionMappings;
 
 impl Combiner {
     pub async fn lazy_expression(
         &mut self,
         expr: &Expression,
-        inner_lf: LazyFrame,
-        columns: &HashSet<String>,
-        prepared_time_series_queries: &mut Option<HashMap<Context, TimeSeriesQuery>>,
+        solution_mappings: SolutionMappings,
+        mut static_query_map: Option<HashMap<Context, Query>>,
+        mut prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> LazyFrame {
+    ) -> Result<SolutionMappings, CombinerError> {
         let lf = match expr {
             Expression::NamedNode(nn) => {
                 let inner_lf = inner_lf.with_column(
@@ -56,9 +58,9 @@ impl Combiner {
             Expression::Or(left, right) => {
                 let left_context = context.extension_with(PathEntry::OrLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::OrRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
                 inner_lf = inner_lf
                     .with_column(
                         (Expr::BinaryExpr {
@@ -74,9 +76,9 @@ impl Combiner {
             Expression::And(left, right) => {
                 let left_context = context.extension_with(PathEntry::AndLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::AndRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
                 inner_lf = inner_lf
                     .with_column(
                         (Expr::BinaryExpr {
@@ -92,9 +94,9 @@ impl Combiner {
             Expression::Equal(left, right) => {
                 let left_context = context.extension_with(PathEntry::EqualLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::EqualRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
                 inner_lf = inner_lf
                     .with_column(
                         (Expr::BinaryExpr {
@@ -113,9 +115,9 @@ impl Combiner {
             Expression::Greater(left, right) => {
                 let left_context = context.extension_with(PathEntry::GreaterLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::GreaterRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
                 inner_lf = inner_lf
                     .with_column(
                         (Expr::BinaryExpr {
@@ -131,9 +133,9 @@ impl Combiner {
             Expression::GreaterOrEqual(left, right) => {
                 let left_context = context.extension_with(PathEntry::GreaterOrEqualLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::GreaterOrEqualRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
 
                 inner_lf = inner_lf
                     .with_column(
@@ -150,9 +152,9 @@ impl Combiner {
             Expression::Less(left, right) => {
                 let left_context = context.extension_with(PathEntry::LessLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::LessRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
                 inner_lf = inner_lf
                     .with_column(
                         (Expr::BinaryExpr {
@@ -168,9 +170,9 @@ impl Combiner {
             Expression::LessOrEqual(left, right) => {
                 let left_context = context.extension_with(PathEntry::LessOrEqualLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::LessOrEqualRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
 
                 inner_lf = inner_lf
                     .with_column(
@@ -190,7 +192,7 @@ impl Combiner {
                     .map(|i| context.extension_with(PathEntry::InRight(i as u16)))
                     .collect();
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 for i in 0..right.len() {
                     let expr = right.get(i).unwrap();
                     inner_lf = self.lazy_expression(
@@ -228,9 +230,9 @@ impl Combiner {
             Expression::Add(left, right) => {
                 let left_context = context.extension_with(PathEntry::AddLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::AddRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
                 inner_lf = inner_lf
                     .with_column(
                         (Expr::BinaryExpr {
@@ -246,9 +248,9 @@ impl Combiner {
             Expression::Subtract(left, right) => {
                 let left_context = context.extension_with(PathEntry::SubtractLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::SubtractRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
                 inner_lf = inner_lf
                     .with_column(
                         (Expr::BinaryExpr {
@@ -271,7 +273,7 @@ impl Combiner {
                     &context.extension_with(PathEntry::MultiplyLeft),
                 );
                 let right_context = context.extension_with(PathEntry::MultiplyRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
 
                 inner_lf = inner_lf
                     .with_column(
@@ -288,9 +290,9 @@ impl Combiner {
             Expression::Divide(left, right) => {
                 let left_context = context.extension_with(PathEntry::DivideLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let right_context = context.extension_with(PathEntry::DivideRight);
-                inner_lf = self.lazy_expression(right, inner_lf, columns, prepared_time_series_queries, &right_context);
+                inner_lf = self.lazy_expression(right, inner_lf, columns, static_query_map, prepared_time_series_queries, &right_context);
 
                 inner_lf = inner_lf
                     .with_column(
@@ -307,7 +309,7 @@ impl Combiner {
             Expression::UnaryPlus(inner) => {
                 let plus_context = context.extension_with(PathEntry::UnaryPlus);
                 let mut inner_lf =
-                    self.lazy_expression(inner, inner_lf, columns, prepared_time_series_queries, &plus_context);
+                    self.lazy_expression(inner, inner_lf, columns, static_query_map, prepared_time_series_queries, &plus_context);
                 inner_lf = inner_lf
                     .with_column(
                         (Expr::BinaryExpr {
@@ -323,7 +325,7 @@ impl Combiner {
             Expression::UnaryMinus(inner) => {
                 let minus_context = context.extension_with(PathEntry::UnaryMinus);
                 let mut inner_lf =
-                    self.lazy_expression(inner, inner_lf, columns, prepared_time_series_queries, &minus_context);
+                    self.lazy_expression(inner, inner_lf, columns, static_query_map, prepared_time_series_queries, &minus_context);
                 inner_lf = inner_lf
                     .with_column(
                         (Expr::BinaryExpr {
@@ -339,7 +341,7 @@ impl Combiner {
             Expression::Not(inner) => {
                 let not_context = context.extension_with(PathEntry::Not);
                 let mut inner_lf =
-                    self.lazy_expression(inner, inner_lf, columns, prepared_time_series_queries, &not_context);
+                    self.lazy_expression(inner, inner_lf, columns, static_query_map, prepared_time_series_queries, &not_context);
                 inner_lf = inner_lf
                     .with_column(col(&not_context.as_str()).not().alias(context.as_str()))
                     .drop_columns([&not_context.as_str()]);
@@ -352,8 +354,8 @@ impl Combiner {
                 );
                 lf = lf
                     .with_column(col(&exists_context.as_str()).cumsum(false).keep_name());
-                let constraints = ConstrainingSolutionMapping {
-                    solution_mapping: lf,
+                let constraints = SolutionMappings {
+                    mappings: lf,
                     columns: Default::default(),
                     datatypes: Default::default(),
                 };
@@ -388,9 +390,9 @@ impl Combiner {
             Expression::If(left, middle, right) => {
                 let left_context = context.extension_with(PathEntry::IfLeft);
                 let mut inner_lf =
-                    self.lazy_expression(left, inner_lf, columns, prepared_time_series_queries, &left_context);
+                    self.lazy_expression(left, inner_lf, columns, static_query_map, prepared_time_series_queries, &left_context);
                 let middle_context = context.extension_with(PathEntry::IfMiddle);
-                inner_lf = self.lazy_expression(middle, inner_lf, columns, prepared_time_series_queries, &middle_context);
+                inner_lf = self.lazy_expression(middle, inner_lf, columns, static_query_map, prepared_time_series_queries, &middle_context);
                 let right_context = context.extension_with(PathEntry::IfRight);
                 inner_lf = self.lazy_expression(
                     right,

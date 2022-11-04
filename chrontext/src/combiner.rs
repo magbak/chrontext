@@ -4,10 +4,9 @@ pub(crate) mod lazy_expressions;
 pub(crate) mod lazy_graph_patterns;
 mod lazy_order;
 pub(crate) mod static_subqueries;
-mod constraining_solution_mapping;
+mod solution_mapping;
 pub(crate) mod time_series_queries;
 
-use crate::combiner::lazy_aggregate::sparql_aggregate_expression_as_lazy_column_and_expression;
 use crate::query_context::{Context, PathEntry};
 
 use crate::preparing::TimeSeriesQueryPrepper;

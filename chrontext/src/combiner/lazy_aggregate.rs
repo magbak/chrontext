@@ -4,7 +4,8 @@ use crate::timeseries_query::TimeSeriesQuery;
 use oxrdf::Variable;
 use polars::prelude::{col, DataFrame, DataType, Expr, GetOutput, IntoSeries, LazyFrame};
 use spargebra::algebra::AggregateExpression;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use crate::combiner::solution_mapping::SolutionMappings;
 use super::Combiner;
 
 impl Combiner {
@@ -12,12 +13,9 @@ impl Combiner {
         &mut self,
         variable: &Variable,
         aggregate_expression: &AggregateExpression,
-        all_proper_column_names: &Vec<String>,
-        columns: &HashSet<String>,
-        lf: LazyFrame,
-        time_series: &mut Vec<(TimeSeriesQuery, DataFrame)>,
+        solution_mappings:SolutionMappings,
         context: &Context,
-    ) -> (LazyFrame, Expr, Option<Context>) {
+    ) -> (SolutionMappings, Expr, Option<Context>) {
         let out_lf;
         let mut out_expr;
         let column_context;
@@ -27,9 +25,9 @@ impl Combiner {
                     column_context = Some(context.extension_with(PathEntry::AggregationOperation));
                     out_lf = self.lazy_expression(
                         some_expr,
-                        lf,
-                        columns,
-                        time_series,
+                        solution_mappings,
+                        None,
+                        None,
                         column_context.as_ref().unwrap(),
                     );
                     if *distinct {
@@ -56,7 +54,7 @@ impl Combiner {
                     expr,
                     lf,
                     columns,
-                    time_series,
+                    None,
                     column_context.as_ref().unwrap(),
                 );
 
@@ -74,7 +72,7 @@ impl Combiner {
                     expr,
                     lf,
                     columns,
-                    time_series,
+                    None,
                     column_context.as_ref().unwrap(),
                 );
 
@@ -93,7 +91,7 @@ impl Combiner {
                     expr,
                     lf,
                     columns,
-                    time_series,
+                    None,
                     column_context.as_ref().unwrap(),
                 );
 
@@ -106,7 +104,7 @@ impl Combiner {
                     expr,
                     lf,
                     columns,
-                    time_series,
+                    None,
                     column_context.as_ref().unwrap(),
                 );
 
@@ -123,7 +121,7 @@ impl Combiner {
                     expr,
                     lf,
                     columns,
-                    time_series,
+                    None,
                     column_context.as_ref().unwrap(),
                 );
 
@@ -164,7 +162,7 @@ impl Combiner {
                     expr,
                     lf,
                     columns,
-                    time_series,
+                    None,
                     column_context.as_ref().unwrap(),
                 );
 
@@ -183,7 +181,7 @@ impl Combiner {
                         expr,
                         lf,
                         columns,
-                        time_series,
+                        None,
                         column_context.as_ref().unwrap(),
                     );
                     out_expr = col(column_context.as_ref().unwrap().as_str()).list();

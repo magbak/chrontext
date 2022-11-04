@@ -6,8 +6,7 @@ use polars::prelude::LazyFrame;
 use spargebra::algebra::GraphPattern;
 use spargebra::term::TriplePattern;
 use crate::combiner::CombinerError;
-use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
-use crate::combiner::lazy_graph_patterns:: ConstrainingSolutionMapping;
+use crate::combiner::lazy_graph_patterns::SolutionMappings;
 use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
@@ -15,10 +14,10 @@ impl Combiner {
         &mut self,
         inner: &GraphPattern,
         variables: &Vec<Variable>,
-        constraints: Option<ConstrainingSolutionMapping>,
+        solution_mapping: Option<SolutionMappings>,
         prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> Result< ConstrainingSolutionMapping, CombinerError> {
+    ) -> Result<SolutionMappings, CombinerError> {
         let inner_lf = self.lazy_graph_pattern(
             columns,
             input_lf,

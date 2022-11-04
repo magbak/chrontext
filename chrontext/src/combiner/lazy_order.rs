@@ -1,4 +1,3 @@
-use crate::combiner::lazy_expressions::lazy_expression;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
 use polars::prelude::{DataFrame, LazyFrame};
@@ -27,7 +26,7 @@ impl Combiner {
             OrderExpression::Desc(expr) => {
                 let inner_context = context.extension_with(PathEntry::OrderingOperation);
                 (
-                    self.lazy_expression(expr, lazy_frame, columns, time_series, &inner_context),
+                    self.lazy_expression(expr, lazy_frame, columns, prepared_time_series_queries, &inner_context),
                     false,
                     inner_context,
                 )

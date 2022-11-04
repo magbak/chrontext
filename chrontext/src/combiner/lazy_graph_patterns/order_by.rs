@@ -4,8 +4,7 @@ use crate::query_context::{Context, PathEntry};
 use polars::prelude::{col, Expr, LazyFrame};
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use crate::combiner::CombinerError;
-use crate::combiner::constraining_solution_mapping::ConstrainingSolutionMapping;
-use crate::combiner::lazy_order::lazy_order_expression;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::timeseries_query::TimeSeriesQuery;
 
 impl Combiner {
@@ -13,10 +12,10 @@ impl Combiner {
         &mut self,
         inner: &GraphPattern,
         expression: &Vec<OrderExpression>,
-        constraints: Option<ConstrainingSolutionMapping>,
-        prepared_time_series_queries: &mut Option<HashMap<Context, TimeSeriesQuery>>,
+        solution_mapping: Option<SolutionMappings>,
+        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
         context: &Context,
-    ) -> Result< ConstrainingSolutionMapping, CombinerError> {
+    ) -> Result<SolutionMappings, CombinerError> {
         let mut inner_lf = self.lazy_graph_pattern(
                     inner,
                     input_lf,
