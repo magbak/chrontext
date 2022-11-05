@@ -1,17 +1,13 @@
 use crate::combiner::{Combiner, CombinerError};
-use crate::preparing::TimeSeriesQueryPrepper;
 use crate::preprocessing::Preprocessor;
 use crate::pushdown_setting::PushdownSetting;
 use crate::rewriting::StaticQueryRewriter;
 use crate::splitter::parse_sparql_select_query;
-use crate::static_sparql::execute_sparql_query;
 use crate::timeseries_database::TimeSeriesQueryable;
 use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
 use log::debug;
 use oxrdf::vocab::xsd;
-use oxrdf::Term;
 use polars::frame::DataFrame;
-use sparesults::QuerySolution;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -78,9 +74,6 @@ impl Engine {
             rewritten_filters, ..
         } = rewriter;
 
-        let mut time_series = self
-            .execute_time_series_queries(time_series_queries)
-            .await?;
         debug!("Time series: {:?}", time_series);
         let mut combiner = Combiner::new(self.endpoint.to_string(), Default::default(), Box::new(()), vec![], Default::default(), vec![]);
         let solution_mappings = combiner.combine_static_and_time_series_results(

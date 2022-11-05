@@ -19,7 +19,7 @@ impl Combiner {
         aggregates: &Vec<(Variable, AggregateExpression)>,
         solution_mapping: Option<SolutionMappings>,
         mut static_query_map: HashMap<Context, Query>,
-        mut prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         let inner_context = context.extension_with(PathEntry::GroupInner);

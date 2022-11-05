@@ -17,7 +17,7 @@ impl Combiner {
         expression: &Vec<OrderExpression>,
         solution_mappings: Option<SolutionMappings>,
         static_query_map: HashMap<Context, Query>,
-        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         let mut output_solution_mappings = self

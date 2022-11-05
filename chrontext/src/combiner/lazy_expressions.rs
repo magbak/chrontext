@@ -33,7 +33,7 @@ impl Combiner {
         expr: &Expression,
         mut solution_mappings: SolutionMappings,
         mut static_query_map: Option<HashMap<Context, Query>>,
-        mut prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         let output_solution_mappings = match expr {

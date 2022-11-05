@@ -1,8 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use oxrdf::{NamedNode, Variable};
 use polars::prelude::LazyFrame;
-use polars_core::prelude::{JoinType, NamedFrom};
-use polars_core::series::Series;
 
 #[derive(Clone)]
 pub struct SolutionMappings {

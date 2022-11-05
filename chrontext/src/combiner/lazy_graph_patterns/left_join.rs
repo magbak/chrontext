@@ -21,7 +21,7 @@ impl Combiner {
         expression: &Option<Expression>,
         solution_mapping: Option<SolutionMappings>,
         mut static_query_map: HashMap<Context, Query>,
-        mut prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         let left_join_distinct_column = context.as_str();

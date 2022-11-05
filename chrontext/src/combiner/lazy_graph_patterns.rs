@@ -27,31 +27,33 @@ impl Combiner {
         graph_pattern: &GraphPattern,
         solution_mappings: Option<SolutionMappings>,
         mut static_query_map: HashMap<Context, Query>,
-        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         let mut updated_solution_mappings = solution_mappings;
         let mut new_prepared_time_series_queries = prepared_time_series_queries;
 
         if let Some(query) = static_query_map.remove(context) {
-            let new_solution_mappings =
-                self.execute_static_query(&query, updated_solution_mappings);
-            updated_solution_mappings = Some(new_solution_mappings);
+            let mut new_solution_mappings =
+                self.execute_static_query(&query, updated_solution_mappings).await?;
             let GPPrepReturn {
                 time_series_queries,
                 ..
             } = self
                 .prepper
-                .prepare_graph_pattern(graph_pattern, false, &context);
-            new_prepared_time_series_queries = time_series_queries;
+                .prepare_graph_pattern(graph_pattern, false, &mut new_solution_mappings,  &context);
+            updated_solution_mappings = Some(new_solution_mappings);
+            new_prepared_time_series_queries = Some(time_series_queries);
         }
 
-        if let Some(tsqs) = &mut new_prepared_time_series_queries {
-            if let Some(tsq) = tsqs.remove(context) {
-                let new_solution_mappings = self
-                    .execute_attach_time_series_query(&tsq, &updated_solution_mappings.unwrap())
-                    .await?;
-                updated_solution_mappings = Some(new_solution_mappings);
+        if let Some(tsqs_map) = &mut new_prepared_time_series_queries {
+            if let Some(tsqs) = tsqs_map.remove(context) {
+                for tsq in tsqs {
+                    let new_solution_mappings = self
+                        .execute_attach_time_series_query(&tsq, updated_solution_mappings.unwrap())
+                        .await?;
+                    updated_solution_mappings = Some(new_solution_mappings);
+                }
             }
         }
 

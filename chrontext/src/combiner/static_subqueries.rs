@@ -16,11 +16,11 @@ impl Combiner {
         solution_mappings: Option<SolutionMappings>,
     ) -> Result<SolutionMappings, CombinerError> {
         let solutions = execute_sparql_query(&self.endpoint, query).await.map_err(|x|CombinerError::StaticQueryExecutionError(x))?;
-        let (df, datatypes) = create_static_query_dataframe(query, solutions);
         complete_basic_time_series_queries(
             &solutions,
             &mut self.prepper.basic_time_series_queries,
         )?;
+        let (df, datatypes) = create_static_query_dataframe(query, solutions);
         let columns = df
             .get_column_names()
             .iter()

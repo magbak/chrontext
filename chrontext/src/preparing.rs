@@ -1,7 +1,6 @@
 mod expressions;
 pub(crate) mod graph_patterns;
 mod synchronization;
-pub mod lf_wrap;
 
 use crate::pushdown_setting::PushdownSetting;
 use crate::query_context::Context;
@@ -9,6 +8,7 @@ use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
+use crate::combiner::solution_mapping::SolutionMappings;
 
 #[derive(Debug)]
 pub struct TimeSeriesQueryPrepper {
@@ -32,9 +32,9 @@ impl TimeSeriesQueryPrepper {
         }
     }
 
-    pub fn prepare(&mut self, query: &Query) -> HashMap<Context, Vec<TimeSeriesQuery>> {
+    pub fn prepare(&mut self, query: &Query, solution_mappings: &mut SolutionMappings) -> HashMap<Context, Vec<TimeSeriesQuery>> {
         if let Query::Select { pattern, .. } = query {
-            let mut pattern_prepared = self.prepare_graph_pattern(pattern, false, &Context::new());
+            let mut pattern_prepared = self.prepare_graph_pattern(pattern, false, solution_mappings, &Context::new());
             pattern_prepared.time_series_queries
         } else {
             panic!("Only support for Select");

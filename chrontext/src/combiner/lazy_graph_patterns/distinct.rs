@@ -16,7 +16,7 @@ impl Combiner {
         inner: &GraphPattern,
         solution_mappings: Option<SolutionMappings>,
         static_query_map: HashMap<Context, Query>,
-        prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         let SolutionMappings { mappings, columns, datatypes } = self.lazy_graph_pattern(

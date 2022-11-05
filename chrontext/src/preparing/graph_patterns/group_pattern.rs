@@ -1,6 +1,6 @@
 use crate::query_context::{Context, PathEntry};
 use log::debug;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use super::TimeSeriesQueryPrepper;
 use crate::constants::GROUPING_COL;
@@ -9,12 +9,11 @@ use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::pushdown_setting::PushdownSetting;
 use crate::timeseries_query::{GroupedTimeSeriesQuery, TimeSeriesQuery};
 use oxrdf::Variable;
-use polars::prelude::LazyFrame;
-use polars_core::frame::DataFrame;
+use polars::prelude::{IntoLazy};
 use polars_core::prelude::{JoinType, UniqueKeepStrategy};
 use polars_core::series::Series;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
-use crate::preparing::lf_wrap::WrapLF;
+use crate::combiner::solution_mapping::SolutionMappings;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_group(
@@ -23,7 +22,7 @@ impl TimeSeriesQueryPrepper {
         by: &Vec<Variable>,
         aggregations: &Vec<(Variable, AggregateExpression)>,
         try_groupby_complex_query: bool,
-        wrap_lf: &mut WrapLF,
+        solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
         if try_groupby_complex_query {
@@ -31,41 +30,40 @@ impl TimeSeriesQueryPrepper {
         }
         let inner_context = &context.extension_with(PathEntry::GroupInner);
         let mut try_graph_pattern_prepare =
-            self.prepare_graph_pattern(graph_pattern, true, &inner_context);
+            self.prepare_graph_pattern(graph_pattern, true, solution_mappings, &inner_context);
         if !try_graph_pattern_prepare.fail_groupby_complex_query
             && self.pushdown_settings.contains(&PushdownSetting::GroupBy)
         {
-            let mut time_series_queries = try_graph_pattern_prepare.drained_time_series_queries();
+            if try_graph_pattern_prepare.time_series_queries.len() == 1 {
+                let (_c, mut tsqs) = try_graph_pattern_prepare.time_series_queries.drain().next().unwrap();
+                if tsqs.len() == 1 {
+                    let mut tsq = tsqs.remove(0);
+                    let in_scope = check_aggregations_are_in_scope(&tsq, inner_context, aggregations);
 
-            if time_series_queries.len() == 1 {
-                let mut tsq = time_series_queries.remove(0);
-                let in_scope = check_aggregations_are_in_scope(&tsq, inner_context, aggregations);
-
-                if in_scope {
-                    let grouping_col = self.add_grouping_col(by);
-                    tsq = add_basic_groupby_mapping_values(
-                        tsq,
-                        static_result_df,
-                        &grouping_col,
-                    );
-                    let tsfuncs = tsq.get_timeseries_functions(context);
-                    let mut keep_by = vec![Variable::new_unchecked(&grouping_col)];
-                    for v in by {
-                        for (v2, _) in &tsfuncs {
-                            if v2.as_str() == v.as_str() {
-                                keep_by.push(v.clone())
+                    if in_scope {
+                        let grouping_col = self.add_grouping_col(solution_mappings, by);
+                        tsq = add_basic_groupby_mapping_values(
+                            tsq,
+                            solution_mappings,
+                            &grouping_col,
+                        );
+                        let tsfuncs = tsq.get_timeseries_functions(context);
+                        let mut keep_by = vec![Variable::new_unchecked(&grouping_col)];
+                        for v in by {
+                            for (v2, _) in &tsfuncs {
+                                if v2.as_str() == v.as_str() {
+                                    keep_by.push(v.clone())
+                                }
                             }
                         }
+                        //TODO: For OPC UA we must ensure that mapping df is 1:1 with identities, or alternatively group on these
+                        tsq = TimeSeriesQuery::Grouped(GroupedTimeSeriesQuery {
+                            tsq: Box::new(tsq),
+                            by: keep_by,
+                            aggregations: aggregations.clone(),
+                        });
+                        return GPPrepReturn::new(HashMap::from([(context.clone(), vec![tsq])]));
                     }
-                    //TODO: For OPC UA we must ensure that mapping df is 1:1 with identities, or alternatively group on these
-
-                    tsq = TimeSeriesQuery::Grouped(GroupedTimeSeriesQuery {
-                        tsq: Box::new(tsq),
-                        graph_pattern_context: context.clone(),
-                        by: keep_by,
-                        aggregations: aggregations.clone(),
-                    });
-                    return GPPrepReturn::new(vec![tsq]);
                 }
             }
         }
@@ -73,24 +71,25 @@ impl TimeSeriesQueryPrepper {
         self.prepare_graph_pattern(
             graph_pattern,
             false,
+            solution_mappings,
             &context.extension_with(PathEntry::GroupInner),
         )
     }
 
-    fn add_grouping_col(&mut self, by: &Vec<Variable>) -> String {
+    fn add_grouping_col(&mut self, solution_mappings:&mut SolutionMappings, by: &Vec<Variable>) -> String {
         let grouping_col = format!("{}_{}", GROUPING_COL, self.grouping_counter);
         self.grouping_counter += 1;
         let by_names: Vec<String> = by
             .iter()
             .filter(|x| {
-                self.static_result_df
-                    .get_column_names()
+                solution_mappings
+                    .columns
                     .contains(&x.as_str())
             })
             .map(|x| x.as_str().to_string())
             .collect();
-        let mut df = self
-            .static_result_df
+        let solution_mappings_df = solution_mappings.mappings.collect().unwrap();
+        let mut df = solution_mappings_df
             .select(by_names.as_slice())
             .unwrap()
             .unique(Some(by_names.as_slice()), UniqueKeepStrategy::First)
@@ -98,8 +97,7 @@ impl TimeSeriesQueryPrepper {
         let mut series = Series::from_iter(0..(df.height() as i64));
         series.rename(&grouping_col);
         df.with_column(series).unwrap();
-        self.static_result_df = self
-            .static_result_df
+        solution_mappings.mappings = solution_mappings_df
             .join(
                 &df,
                 by_names.as_slice(),
@@ -107,7 +105,7 @@ impl TimeSeriesQueryPrepper {
                 JoinType::Inner,
                 None,
             )
-            .unwrap();
+            .unwrap().lazy();
         grouping_col
     }
 }
@@ -136,7 +134,7 @@ fn check_aggregations_are_in_scope(
 
 fn add_basic_groupby_mapping_values(
     tsq: TimeSeriesQuery,
-    static_result_df: &DataFrame,
+    solution_mappings: &mut SolutionMappings,
     grouping_col: &str,
 ) -> TimeSeriesQuery {
     match tsq {
@@ -145,13 +143,15 @@ fn add_basic_groupby_mapping_values(
                 grouping_col,
                 b.identifier_variable.as_ref().unwrap().as_str(),
             ];
-            let df = static_result_df.select(by_vec).unwrap();
-            TimeSeriesQuery::GroupedBasic(b, df, grouping_col.to_string())
+            let df = solution_mappings.mappings.collect().unwrap();
+            let mapping_values = df.select(by_vec).unwrap();
+            solution_mappings.mappings = df.lazy();
+            TimeSeriesQuery::GroupedBasic(b, mapping_values, grouping_col.to_string())
         }
         TimeSeriesQuery::Filtered(tsq, f) => TimeSeriesQuery::Filtered(
             Box::new(add_basic_groupby_mapping_values(
                 *tsq,
-                static_result_df,
+                solution_mappings,
                 grouping_col,
             )),
             f,
@@ -161,7 +161,7 @@ fn add_basic_groupby_mapping_values(
             for tsq in inners {
                 tsq_added.push(Box::new(add_basic_groupby_mapping_values(
                     *tsq,
-                    static_result_df,
+                    solution_mappings,
                     grouping_col,
                 )))
             }
@@ -170,7 +170,7 @@ fn add_basic_groupby_mapping_values(
         TimeSeriesQuery::ExpressionAs(tsq, v, e) => TimeSeriesQuery::ExpressionAs(
             Box::new(add_basic_groupby_mapping_values(
                 *tsq,
-                static_result_df,
+                solution_mappings,
                 grouping_col,
             )),
             v,

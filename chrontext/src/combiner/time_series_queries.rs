@@ -36,13 +36,12 @@ impl Combiner {
 
         solution_mappings.mappings =
             solution_mappings.mappings
-                .lazy()
                 .join(ts_lf, on.as_slice(), on.as_slice(), JoinType::Inner);
         return Ok(solution_mappings);
     }
 }
 
-pub(crate) fn split_time_series_queries(time_series_queries: &mut Option<HashMap<Context, TimeSeriesQuery>>, context:&Context) -> Option<HashMap<Context, TimeSeriesQuery>> {
+pub(crate) fn split_time_series_queries(time_series_queries: &mut Option<HashMap<Context, Vec<TimeSeriesQuery>>>, context:&Context) -> Option<HashMap<Context, Vec<TimeSeriesQuery>>> {
     if let Some(tsqs) = time_series_queries {
         let mut split_keys = vec![];
         for k in tsqs.keys() {

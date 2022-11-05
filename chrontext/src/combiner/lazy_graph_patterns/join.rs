@@ -18,7 +18,7 @@ impl Combiner {
         right: &GraphPattern,
         solution_mappings: Option<SolutionMappings>,
         mut static_query_map: HashMap<Context, Query>,
-        mut prepared_time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+        mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result< SolutionMappings, CombinerError> {
         let left_context = context.extension_with(PathEntry::JoinLeftSide);

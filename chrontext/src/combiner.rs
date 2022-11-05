@@ -3,27 +3,24 @@ pub(crate) mod lazy_aggregate;
 pub(crate) mod lazy_expressions;
 pub(crate) mod lazy_graph_patterns;
 mod lazy_order;
-mod solution_mapping;
+pub mod solution_mapping;
 pub(crate) mod static_subqueries;
 pub(crate) mod time_series_queries;
 
-use crate::query_context::{Context, PathEntry};
+use crate::query_context::Context;
 
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::TimeSeriesQueryPrepper;
 use crate::pushdown_setting::PushdownSetting;
 use crate::rewriting::subqueries::SubQueryInContext;
+use crate::static_sparql::QueryExecutionError;
 use crate::timeseries_database::TimeSeriesQueryable;
-use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
-use oxrdf::Variable;
-use polars::frame::DataFrame;
-use polars::prelude::{col, Expr, IntoLazy, LazyFrame, UniqueKeepStrategy};
-use spargebra::algebra::{AggregateExpression, Expression, GraphPattern};
+use crate::timeseries_query::BasicTimeSeriesQuery;
+use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::static_sparql::QueryExecutionError;
 
 #[derive(Debug)]
 pub enum CombinerError {
@@ -42,17 +39,11 @@ impl Display for CombinerError {
                     s1, s2, s3
                 )
             }
-            CombinerError::TimeSeriesQueryError(tsqe) => {write!(
-                    f,
-                    "Time series query error {}",
-                    tsqe
-                )}
+            CombinerError::TimeSeriesQueryError(tsqe) => {
+                write!(f, "Time series query error {}", tsqe)
+            }
             CombinerError::StaticQueryExecutionError(sqee) => {
-                write!(
-                    f,
-                    "Static query execution error {}",
-                    sqee
-                )
+                write!(f, "Static query execution error {}", sqee)
             }
         }
     }
@@ -96,7 +87,7 @@ impl Combiner {
         static_query_map: HashMap<Context, Query>,
         query: &Query,
     ) -> Result<SolutionMappings, CombinerError> {
-        let mut context = Context::new();
+        let context = Context::new();
         if let Query::Select {
             dataset: _,
             pattern,
