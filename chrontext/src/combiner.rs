@@ -22,10 +22,12 @@ use spargebra::algebra::{AggregateExpression, Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use crate::static_sparql::QueryExecutionError;
 
 #[derive(Debug)]
 pub enum CombinerError {
     TimeSeriesQueryError(Box<dyn Error>),
+    StaticQueryExecutionError(QueryExecutionError)
 }
 
 pub struct Combiner {

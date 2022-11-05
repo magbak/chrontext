@@ -11,17 +11,15 @@ impl Combiner {
     pub async fn execute_attach_time_series_query(
         &mut self,
         tsq: &TimeSeriesQuery,
-        constraints: &SolutionMappings,
+        mut solution_mappings: SolutionMappings,
     ) -> Result<SolutionMappings, CombinerError> {
         let ts_df = self
             .time_series_database
             .execute(tsq)
             .await
             .map_err(|x| CombinerError::TimeSeriesQueryError(x))?;
+        //Todo derive datatypes
         let ts_lf = ts_df.lazy();
-        let SolutionMappings {
-            mappings: solution_mapping, ..
-        } = constraints;
         let on: Vec<Expr>;
         if let Some(colname) = tsq.get_groupby_column() {
             on = vec![col(colname)]
@@ -32,11 +30,12 @@ impl Combiner {
                 .map(|x| col(x.as_str()))
                 .collect();
         }
-        let mut lf =
-            solution_mapping
+
+        solution_mappings.mappings =
+            solution_mappings.mappings
                 .lazy()
                 .join(ts_lf, on.as_slice(), on.as_slice(), JoinType::Inner);
-        return Ok((lf, columns));
+        return Ok(solution_mappings);
     }
 }
 

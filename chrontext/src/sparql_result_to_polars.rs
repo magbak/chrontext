@@ -11,7 +11,7 @@ use std::str::FromStr;
 pub(crate) fn create_static_query_dataframe(
     static_query: &Query,
     static_query_solutions: Vec<QuerySolution>,
-) -> (DataFrame, HashMap<String, NamedNode>) {
+) -> (DataFrame, HashMap<Variable, NamedNode>) {
     let column_variables;
     if let Query::Select {
         dataset: _,
@@ -40,8 +40,8 @@ pub(crate) fn create_static_query_dataframe(
         for s in &static_query_solutions {
             if let Some(term) = s.get(c) {
                 match term {
-                    Term::NamedNode(n) => {datatypes.insert(c.as_str().to_string(), xsd::ANY_URI.into_owned())}
-                    Term::Literal(l) => {datatypes.insert(c.as_str().to_string(), l.datatype().into_owned())}
+                    Term::NamedNode(n) => {datatypes.insert(c.clone(), xsd::ANY_URI.into_owned());}
+                    Term::Literal(l) => {datatypes.insert(c.clone(), l.datatype().into_owned());}
                     _ => {panic!("Not supported")} //Blank node
                 }
                 continue 'outer
@@ -50,11 +50,11 @@ pub(crate) fn create_static_query_dataframe(
     }
 
     for c in &column_variables {
-        let literal_values = vec![];
+        let mut literal_values = vec![];
         for s in &static_query_solutions {
-            iteral_values.push(
+            literal_values.push(
             if let Some(term) = s.get(c) {
-                    sparql_term_to_polars_literal_value(term);
+                    sparql_term_to_polars_literal_value(term)
                 } else {
                     LiteralValue::Null
                 });

@@ -3,7 +3,6 @@ use crate::preparing::TimeSeriesQueryPrepper;
 use crate::preprocessing::Preprocessor;
 use crate::pushdown_setting::PushdownSetting;
 use crate::rewriting::StaticQueryRewriter;
-use crate::sparql_result_to_polars::create_static_query_result_df;
 use crate::splitter::parse_sparql_select_query;
 use crate::static_sparql::execute_sparql_query;
 use crate::timeseries_database::TimeSeriesQueryable;
@@ -73,10 +72,7 @@ impl Engine {
             basic_time_series_queries
         );
         let static_query_solutions = execute_sparql_query(endpoint, &static_rewrite).await?;
-        complete_basic_time_series_queries(
-            &static_query_solutions,
-            &mut basic_time_series_queries,
-        )?;
+
         let static_result_df =
             create_static_query_result_df(&static_rewrite, static_query_solutions);
         let StaticQueryRewriter {

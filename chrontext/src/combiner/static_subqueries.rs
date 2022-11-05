@@ -4,26 +4,29 @@ use crate::query_context::Context;
 use crate::static_sparql::execute_sparql_query;
 use spargebra::Query;
 use std::collections::HashMap;
+use polars::prelude::IntoLazy;
 use crate::combiner::CombinerError;
-use crate::sparql_result_to_polars::create_static_query_result_df;
+use crate::engine::complete_basic_time_series_queries;
+use crate::sparql_result_to_polars::{create_static_query_dataframe};
 
 impl Combiner {
-    pub fn execute_static_query(
-        &self,
+    pub async fn execute_static_query(
+        &mut self,
         query: &Query,
         solution_mappings: Option<SolutionMappings>,
     ) -> Result<SolutionMappings, CombinerError> {
-        let solutions = execute_sparql_query(&self.endpoint, query).await?;
-        let mut datatypes = HashMap::new();
-        create_static_query_result_df(query, solutions);
-        if solut
-
-        let columns = static_result_df
+        let solutions = execute_sparql_query(&self.endpoint, query).await.map_err(|x|CombinerError::StaticQueryExecutionError(x))?;
+        let (df, datatypes) = create_static_query_dataframe(query, solutions);
+        complete_basic_time_series_queries(
+            &solutions,
+            &mut self.prepper.basic_time_series_queries,
+        )?;
+        let columns = df
             .get_column_names()
             .iter()
             .map(|x| x.to_string())
             .collect();
-        todo!()
+        Ok(SolutionMappings::new(df.lazy(), columns, datatypes))
     }
 }
 

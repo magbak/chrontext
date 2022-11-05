@@ -13,7 +13,7 @@ use std::collections::{HashMap, HashSet};
 #[derive(Debug)]
 pub struct TimeSeriesQueryPrepper {
     pushdown_settings: HashSet<PushdownSetting>,
-    basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
+    pub(crate) basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
     grouping_counter: u16,
     rewritten_filters: HashMap<Context, Expression>,
 }
