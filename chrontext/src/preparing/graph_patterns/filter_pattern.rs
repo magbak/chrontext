@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
 use crate::change_types::ChangeType;
 use crate::preparing::graph_patterns::filter_expression_rewrites::rewrite_filter_expression;
@@ -29,8 +30,8 @@ impl TimeSeriesQueryPrepper {
             return GPPrepReturn::fail_groupby_complex_query();
         }
 
-        let mut out_tsqs = vec![];
-        out_tsqs.extend(expression_prepare.drained_time_series_queries());
+        let mut out_tsqs = HashMap::new();
+        out_tsqs.extend(expression_prepare.time_series_queries);
         for t in inner_prepare.drained_time_series_queries() {
             let use_change_type = if try_groupby_complex_query {
                 ChangeType::NoChange

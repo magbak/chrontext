@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::synchronization::create_identity_synchronized_queries;
@@ -22,6 +23,8 @@ impl TimeSeriesQueryPrepper {
         if try_groupby_complex_query {
             local_tsqs = create_identity_synchronized_queries(local_tsqs);
         }
-        GPPrepReturn::new(local_tsqs)
+        let mut tsqs_map = HashMap::new();
+        tsqs_map.insert(context.clone(), local_tsqs);
+        GPPrepReturn::new(tsqs_map)
     }
 }

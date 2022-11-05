@@ -26,11 +26,11 @@ use spargebra::algebra::GraphPattern;
 #[derive(Debug)]
 pub struct GPPrepReturn {
     pub fail_groupby_complex_query: bool,
-    pub time_series_queries: Option<HashMap<Context, TimeSeriesQuery>>,
+    pub time_series_queries: HashMap<Context, Vec<TimeSeriesQuery>>,
 }
 
 impl GPPrepReturn {
-    fn new(time_series_queries: Vec<TimeSeriesQuery>) -> GPPrepReturn {
+    fn new(time_series_queries: HashMap<Context, Vec<TimeSeriesQuery>>) -> GPPrepReturn {
         GPPrepReturn {
             fail_groupby_complex_query: false,
             time_series_queries,
@@ -40,19 +40,13 @@ impl GPPrepReturn {
     pub fn fail_groupby_complex_query() -> GPPrepReturn {
         GPPrepReturn {
             fail_groupby_complex_query: true,
-            time_series_queries: vec![],
+            time_series_queries: HashMap::new(),
         }
     }
 
-    pub fn drained_time_series_queries(&mut self) -> Vec<TimeSeriesQuery> {
+    pub fn with_time_series_queries_from(&mut self, other: GPPrepReturn) {
         self.time_series_queries
-            .drain(0..self.time_series_queries.len())
-            .collect()
-    }
-
-    pub fn with_time_series_queries_from(&mut self, other: &mut GPPrepReturn) {
-        self.time_series_queries
-            .extend(other.drained_time_series_queries())
+            .extend(other.time_series_queries)
     }
 }
 

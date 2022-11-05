@@ -1,9 +1,12 @@
-use std::collections::{HashMap};
+use std::collections::{HashMap, HashSet};
+use oxrdf::Term;
+use oxrdf::vocab::xsd;
 use super::Combiner;
 use crate::combiner::CombinerError;
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
 use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::prelude::JoinType;
+use sparesults::QuerySolution;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::query_context::Context;
 
@@ -42,8 +45,8 @@ impl Combiner {
 pub(crate) fn split_time_series_queries(time_series_queries: &mut Option<HashMap<Context, TimeSeriesQuery>>, context:&Context) -> Option<HashMap<Context, TimeSeriesQuery>> {
     if let Some(tsqs) = time_series_queries {
         let mut split_keys = vec![];
-        for k in &tsqs.keys() {
-            if k.path.iter().zip(context.path()).map(|(x, y)| x == y).all() {
+        for k in tsqs.keys() {
+            if k.path.iter().zip(&context.path).all(|(x, y)| x == y) {
                 split_keys.push(k.clone())
             }
         }
@@ -57,3 +60,50 @@ pub(crate) fn split_time_series_queries(time_series_queries: &mut Option<HashMap
     }
 }
 
+
+pub(crate) fn complete_basic_time_series_queries(
+    static_query_solutions: &Vec<QuerySolution>,
+    basic_time_series_queries: &mut Vec<BasicTimeSeriesQuery>,
+) -> Result<(), CombinerError> {
+    for basic_query in basic_time_series_queries {
+        let mut ids = HashSet::new();
+        for sqs in static_query_solutions {
+            if let Some(Term::Literal(lit)) =
+                sqs.get(basic_query.identifier_variable.as_ref().unwrap())
+            {
+                if lit.datatype() == xsd::STRING {
+                    ids.insert(lit.value().to_string());
+                } else {
+                    todo!()
+                }
+            }
+        }
+
+        if let Some(datatype_var) = &basic_query.datatype_variable {
+            for sqs in static_query_solutions {
+                if let Some(Term::NamedNode(nn)) = sqs.get(datatype_var) {
+                    if basic_query.datatype.is_none() {
+                        basic_query.datatype = Some(nn.clone());
+                    } else if let Some(dt) = &basic_query.datatype {
+                        if dt.as_str() != nn.as_str() {
+                            return Err(CombinerError::InconsistentDatatype(
+                                nn.as_str().to_string(),
+                                dt.as_str().to_string(),
+                                basic_query
+                                    .timeseries_variable
+                                    .as_ref()
+                                    .unwrap()
+                                    .variable
+                                    .to_string(),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        let mut ids_vec: Vec<String> = ids.into_iter().collect();
+        ids_vec.sort();
+        basic_query.ids = Some(ids_vec);
+    }
+    Ok(())
+}

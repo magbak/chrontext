@@ -29,7 +29,7 @@ impl TimeSeriesQueryPrepper {
                 try_groupby_complex_query,
                 &context.extension_with(PathEntry::LeftJoinRightSide),
             );
-            left_prepare.with_time_series_queries_from(&mut right_prepare);
+            left_prepare.with_time_series_queries_from(right_prepare);
             left_prepare
         }
     }

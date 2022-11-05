@@ -26,7 +26,7 @@ impl TimeSeriesQueryPrepper {
         if left_prepare.fail_groupby_complex_query || right_prepare.fail_groupby_complex_query {
             return EXPrepReturn::fail_groupby_complex_query();
         }
-        left_prepare.with_time_series_queries_from(&mut right_prepare);
+        left_prepare.with_time_series_queries_from(right_prepare);
         left_prepare
     }
 }

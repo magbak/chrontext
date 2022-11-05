@@ -22,13 +22,43 @@ use spargebra::algebra::{AggregateExpression, Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::fmt::{Display, Formatter};
 use crate::static_sparql::QueryExecutionError;
 
 #[derive(Debug)]
 pub enum CombinerError {
     TimeSeriesQueryError(Box<dyn Error>),
-    StaticQueryExecutionError(QueryExecutionError)
+    StaticQueryExecutionError(QueryExecutionError),
+    InconsistentDatatype(String, String, String),
 }
+
+impl Display for CombinerError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CombinerError::InconsistentDatatype(s1, s2, s3) => {
+                write!(
+                    f,
+                    "Inconsistent datatypes {} and {} for variable {}",
+                    s1, s2, s3
+                )
+            }
+            CombinerError::TimeSeriesQueryError(tsqe) => {write!(
+                    f,
+                    "Time series query error {}",
+                    tsqe
+                )}
+            CombinerError::StaticQueryExecutionError(sqee) => {
+                write!(
+                    f,
+                    "Static query execution error {}",
+                    sqee
+                )
+            }
+        }
+    }
+}
+
+impl Error for CombinerError {}
 
 pub struct Combiner {
     counter: u16,

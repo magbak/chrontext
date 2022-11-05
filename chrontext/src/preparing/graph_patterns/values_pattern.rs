@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
 
 use crate::preparing::graph_patterns::GPPrepReturn;
@@ -10,6 +11,6 @@ impl TimeSeriesQueryPrepper {
         _variables: &Vec<Variable>,
         _bindings: &Vec<Vec<Option<GroundTerm>>>,
     ) -> GPPrepReturn {
-        GPPrepReturn::new(vec![])
+        GPPrepReturn::new(HashMap::new())
     }
 }

@@ -32,10 +32,10 @@ impl TimeSeriesQueryPrepper {
         }
     }
 
-    pub fn prepare(&mut self, query: &Query) -> Vec<TimeSeriesQuery> {
+    pub fn prepare(&mut self, query: &Query) -> HashMap<Context, Vec<TimeSeriesQuery>> {
         if let Query::Select { pattern, .. } = query {
             let mut pattern_prepared = self.prepare_graph_pattern(pattern, false, &Context::new());
-            pattern_prepared.drained_time_series_queries()
+            pattern_prepared.time_series_queries
         } else {
             panic!("Only support for Select");
         }

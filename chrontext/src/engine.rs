@@ -1,4 +1,4 @@
-use crate::combiner::Combiner;
+use crate::combiner::{Combiner, CombinerError};
 use crate::preparing::TimeSeriesQueryPrepper;
 use crate::preprocessing::Preprocessor;
 use crate::pushdown_setting::PushdownSetting;
@@ -40,6 +40,7 @@ impl Error for OrchestrationError {}
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
     time_series_database: Box<dyn TimeSeriesQueryable>,
+    endpoint: String,
 }
 
 impl Engine {
@@ -51,6 +52,7 @@ impl Engine {
         Engine {
             pushdown_settings,
             time_series_database,
+            endpoint
         }
     }
 
@@ -71,29 +73,22 @@ impl Engine {
             "Produced basic time series queries: {:?}",
             basic_time_series_queries
         );
-        let static_query_solutions = execute_sparql_query(endpoint, &static_rewrite).await?;
 
-        let static_result_df =
-            create_static_query_result_df(&static_rewrite, static_query_solutions);
         let StaticQueryRewriter {
             rewritten_filters, ..
         } = rewriter;
-        debug!("Static result dataframe: {}", static_result_df);
-        if static_result_df.height() == 0 {
-            todo!("Empty static df not supported yet")
-        } else {
-            let mut time_series = self
-                .execute_time_series_queries(time_series_queries)
-                .await?;
-            debug!("Time series: {:?}", time_series);
-            let mut combiner = Combiner::new();
-            let lazy_frame = combiner.combine_static_and_time_series_results(
-                &parsed_query,
-                static_result_df,
-                &mut time_series,
-            );
-            Ok(lazy_frame.collect()?)
-        }
+
+        let mut time_series = self
+            .execute_time_series_queries(time_series_queries)
+            .await?;
+        debug!("Time series: {:?}", time_series);
+        let mut combiner = Combiner::new(self.endpoint.to_string(), Default::default(), Box::new(()), vec![], Default::default(), vec![]);
+        let solution_mappings = combiner.combine_static_and_time_series_results(
+            &parsed_query,
+            static_result_df,
+            &mut time_series,
+        ).await?;
+        Ok(solution_mappings.mappings.collect()?)
     }
 
     async fn execute_time_series_queries(
@@ -118,49 +113,3 @@ impl Engine {
     }
 }
 
-pub(crate) fn complete_basic_time_series_queries(
-    static_query_solutions: &Vec<QuerySolution>,
-    basic_time_series_queries: &mut Vec<BasicTimeSeriesQuery>,
-) -> Result<(), OrchestrationError> {
-    for basic_query in basic_time_series_queries {
-        let mut ids = HashSet::new();
-        for sqs in static_query_solutions {
-            if let Some(Term::Literal(lit)) =
-                sqs.get(basic_query.identifier_variable.as_ref().unwrap())
-            {
-                if lit.datatype() == xsd::STRING {
-                    ids.insert(lit.value().to_string());
-                } else {
-                    todo!()
-                }
-            }
-        }
-
-        if let Some(datatype_var) = &basic_query.datatype_variable {
-            for sqs in static_query_solutions {
-                if let Some(Term::NamedNode(nn)) = sqs.get(datatype_var) {
-                    if basic_query.datatype.is_none() {
-                        basic_query.datatype = Some(nn.clone());
-                    } else if let Some(dt) = &basic_query.datatype {
-                        if dt.as_str() != nn.as_str() {
-                            return Err(OrchestrationError::InconsistentDatatype(
-                                nn.as_str().to_string(),
-                                dt.as_str().to_string(),
-                                basic_query
-                                    .timeseries_variable
-                                    .as_ref()
-                                    .unwrap()
-                                    .variable
-                                    .to_string(),
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-        let mut ids_vec: Vec<String> = ids.into_iter().collect();
-        ids_vec.sort();
-        basic_query.ids = Some(ids_vec);
-    }
-    Ok(())
-}

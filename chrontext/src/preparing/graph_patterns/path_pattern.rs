@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use spargebra::algebra::PropertyPathExpression;
@@ -12,6 +13,6 @@ impl TimeSeriesQueryPrepper {
         _path: &PropertyPathExpression,
         _object: &TermPattern,
     ) -> GPPrepReturn {
-        GPPrepReturn::new(vec![])
+        GPPrepReturn::new(HashMap::new())
     }
 }

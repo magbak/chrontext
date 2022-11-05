@@ -6,7 +6,7 @@ use spargebra::Query;
 use std::collections::HashMap;
 use polars::prelude::IntoLazy;
 use crate::combiner::CombinerError;
-use crate::engine::complete_basic_time_series_queries;
+use crate::combiner::time_series_queries::complete_basic_time_series_queries;
 use crate::sparql_result_to_polars::{create_static_query_dataframe};
 
 impl Combiner {
