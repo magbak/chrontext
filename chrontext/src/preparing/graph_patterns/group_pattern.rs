@@ -58,6 +58,7 @@ impl TimeSeriesQueryPrepper {
                         }
                         //TODO: For OPC UA we must ensure that mapping df is 1:1 with identities, or alternatively group on these
                         tsq = TimeSeriesQuery::Grouped(GroupedTimeSeriesQuery {
+                            context: context.clone(),
                             tsq: Box::new(tsq),
                             by: keep_by,
                             aggregations: aggregations.clone(),
@@ -84,7 +85,7 @@ impl TimeSeriesQueryPrepper {
             .filter(|x| {
                 solution_mappings
                     .columns
-                    .contains(&x.as_str())
+                    .contains(x.as_str())
             })
             .map(|x| x.as_str().to_string())
             .collect();

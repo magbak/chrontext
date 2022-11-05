@@ -151,7 +151,7 @@ impl InMemoryTimeseriesDatabase {
                     out_lf,
                     &mut vec![],
                     &grouped
-                        .graph_pattern_context
+                        .context
                         .extension_with(PathEntry::GroupAggregation(i as u16)),
                 );
             out_lf = lf;
@@ -163,7 +163,7 @@ impl InMemoryTimeseriesDatabase {
         let mut groupby = vec![col(grouped.tsq.get_groupby_column().unwrap())];
         let tsfuncs = grouped
             .tsq
-            .get_timeseries_functions(&grouped.graph_pattern_context);
+            .get_timeseries_functions(&grouped.context);
         for b in &grouped.by {
             for (v, _) in &tsfuncs {
                 if b == *v {

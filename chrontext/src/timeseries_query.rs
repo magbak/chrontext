@@ -25,6 +25,7 @@ pub enum Synchronizer {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupedTimeSeriesQuery {
+    pub context: Context, //TODO: Fix this workaround properly
     pub tsq: Box<TimeSeriesQuery>,
     pub by: Vec<Variable>,
     pub aggregations: Vec<(Variable, AggregateExpression)>,
@@ -111,7 +112,7 @@ impl TimeSeriesQuery {
                 for (v, _) in &g.aggregations {
                     expected_columns.insert(v.as_str());
                 }
-                let tsfuncs = g.tsq.get_timeseries_functions(&g.graph_pattern_context);
+                let tsfuncs = g.tsq.get_timeseries_functions(&g.context);
                 for b in &g.by {
                     for (v, _) in &tsfuncs {
                         if b == *v {

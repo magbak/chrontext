@@ -894,7 +894,7 @@ mod tests {
                 ),
             )),
 
-            graph_pattern_context: Context::new(),
+            context: Context::new(),
             by: vec![
                 Variable::new_unchecked("year".to_string()),
                 Variable::new_unchecked("month".to_string()),
