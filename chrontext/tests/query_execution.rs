@@ -75,7 +75,7 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> InMemoryTimeseriesDatab
 
 #[fixture]
 fn engine(inmem_time_series_database: InMemoryTimeseriesDatabase) -> Engine {
-    Engine::new(all_pushdowns(), Box::new(inmem_time_series_database))
+    Engine::new(all_pushdowns(), Box::new(inmem_time_series_database), QUERY_ENDPOINT.to_string())
 }
 
 #[rstest]
@@ -145,7 +145,7 @@ async fn test_simple_hybrid_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error");
     let mut file_path = testdata_path.clone();
@@ -197,7 +197,7 @@ async fn test_complex_hybrid_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error");
     let mut file_path = testdata_path.clone();
@@ -242,7 +242,7 @@ async fn test_pushdown_group_by_hybrid_query(
     } GROUP BY ?w
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w"], vec![false])
@@ -297,7 +297,7 @@ async fn test_pushdown_group_by_second_hybrid_query(
     } GROUP BY ?w ?year ?month ?day ?hour ?minute ?second
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w", "sum_v"], vec![false])
@@ -353,7 +353,7 @@ async fn test_pushdown_group_by_second_having_hybrid_query(
     HAVING (SUM(?v)>100)
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w", "sum_v"], vec![false])
@@ -403,7 +403,7 @@ async fn test_pushdown_group_by_concat_agg_hybrid_query(
     } GROUP BY ?w ?seconds_5
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w", "seconds_5"], vec![false])
@@ -453,7 +453,7 @@ async fn test_pushdown_groupby_exists_something_hybrid_query(
     } GROUP BY ?w ?seconds_3
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w", "seconds_3"], vec![false])
@@ -503,7 +503,7 @@ async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w"], vec![false])
@@ -556,7 +556,7 @@ async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w"], vec![false])
@@ -609,7 +609,7 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w"], vec![false])
@@ -654,7 +654,7 @@ async fn test_path_group_by_query(
         ORDER BY ASC(?max_v)
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error");
     let mut file_path = testdata_path.clone();
@@ -699,7 +699,7 @@ async fn test_optional_clause_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error");
     let mut file_path = testdata_path.clone();
@@ -744,7 +744,7 @@ async fn test_minus_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w", "v"], vec![false])
@@ -790,7 +790,7 @@ async fn test_in_expression_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error");
     let mut file_path = testdata_path.clone();
@@ -833,7 +833,7 @@ async fn test_values_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error");
     let mut file_path = testdata_path.clone();
@@ -874,7 +874,7 @@ async fn test_if_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w", "v_with_min"], vec![false])
@@ -920,7 +920,7 @@ async fn test_distinct_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error");
     let mut file_path = testdata_path.clone();
@@ -969,7 +969,7 @@ async fn test_union_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["w", "v"], vec![false])
@@ -1023,7 +1023,7 @@ async fn test_coalesce_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
         .sort(&["s1", "t1", "v1", "v2"], vec![false])

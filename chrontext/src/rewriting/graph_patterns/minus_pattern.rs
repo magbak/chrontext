@@ -22,7 +22,7 @@ impl StaticQueryRewriter {
             if !right_rewrite.is_subquery {
                 self.create_add_subquery(right_rewrite, &right_context);
             }
-            let ret = GPReturn::subquery(context.clone());
+            let ret = GPReturn::subquery();
             return ret;
         }
 
@@ -49,7 +49,7 @@ impl StaticQueryRewriter {
             self.create_add_subquery(left_rewrite, &left_context);
             self.create_add_subquery(right_rewrite, &right_context);
 
-            let ret = GPReturn::subquery(context.clone());
+            let ret = GPReturn::subquery();
             return ret;
         }
     }

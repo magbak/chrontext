@@ -3,7 +3,7 @@ mod expressions;
 mod graph_patterns;
 mod order_expression;
 mod project_static;
-pub(crate) mod subqueries;
+mod subqueries;
 
 use crate::constraints::{Constraint, VariableConstraints};
 use crate::query_context::Context;

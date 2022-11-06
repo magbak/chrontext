@@ -134,7 +134,7 @@ fn engine() -> Engine {
     let path = "/";
     let endpoint = format!("opc.tcp://{}:{}{}", hostname().unwrap(), port, path);
     let opcua_tsdb = OPCUAHistoryRead::new(&endpoint, 1);
-    let engine = Engine::new([PushdownSetting::GroupBy].into(), Box::new(opcua_tsdb));
+    let engine = Engine::new([PushdownSetting::GroupBy].into(), Box::new(opcua_tsdb), QUERY_ENDPOINT.to_string());
     engine
 }
 
@@ -169,7 +169,7 @@ fn test_basic_query(
     builder.enable_all();
     let runtime = builder.build().unwrap();
     let df = runtime
-        .block_on(engine.execute_hybrid_query(query, QUERY_ENDPOINT))
+        .block_on(engine.execute_hybrid_query(query))
         .expect("Hybrid error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_basic_query.csv");
@@ -231,7 +231,7 @@ fn test_basic_no_end_time_query(
     builder.enable_all();
     let runtime = builder.build().unwrap();
     let df = runtime
-        .block_on(engine.execute_hybrid_query(query, QUERY_ENDPOINT))
+        .block_on(engine.execute_hybrid_query(query))
         .expect("Hybrid error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_basic_no_end_time_query.csv");
@@ -293,7 +293,7 @@ fn test_pushdown_group_by_five_second_hybrid_query(
     builder.enable_all();
     let runtime = builder.build().unwrap();
     let mut df = runtime
-        .block_on(engine.execute_hybrid_query(query, QUERY_ENDPOINT))
+        .block_on(engine.execute_hybrid_query(query))
         .expect("Hybrid error");
     df = df.sort(vec!["w", "datetime_seconds"], false).unwrap();
     let mut file_path = testdata_path.clone();
@@ -360,7 +360,7 @@ fn test_no_pushdown_because_of_filter_query(
     builder.enable_all();
     let runtime = builder.build().unwrap();
     let mut df = runtime
-        .block_on(engine.execute_hybrid_query(query, QUERY_ENDPOINT))
+        .block_on(engine.execute_hybrid_query(query))
         .expect("Hybrid error");
     df = df.sort(vec!["w", "datetime_seconds"], false).unwrap();
     let mut file_path = testdata_path.clone();

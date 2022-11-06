@@ -333,9 +333,9 @@ async fn test_simple_hybrid_query(
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 200) .
     }
     "#;
-    let mut engine = Engine::new(all_pushdowns(), Box::new(db));
+    let mut engine = Engine::new(all_pushdowns(), Box::new(db), QUERY_ENDPOINT.to_string());
     let mut df = engine
-        .execute_hybrid_query(query, QUERY_ENDPOINT)
+        .execute_hybrid_query(query)
         .await
         .expect("Hybrid error");
     df.with_column(

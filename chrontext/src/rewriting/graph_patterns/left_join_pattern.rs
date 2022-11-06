@@ -39,7 +39,7 @@ impl StaticQueryRewriter {
                     self.create_add_subquery(gp.clone(), ctx);
                     expression_contexts.push(ctx.clone());
                 }
-                let ret = GPReturn::subquery(context.clone());
+                let ret = GPReturn::subquery();
                 return ret;
             } else {
                 left_rewrite.with_scope(&mut right_rewrite);
@@ -61,7 +61,7 @@ impl StaticQueryRewriter {
         } else {
             let left_rewritten = left_rewrite.rewritten;
             if left_rewrite.is_subquery || right_rewrite.is_subquery {
-                let ret = GPReturn::subquery(context.clone());
+                let ret = GPReturn::subquery();
                 return ret;
             } else {
                 let left_graph_pattern = left_rewrite.graph_pattern.take().unwrap();

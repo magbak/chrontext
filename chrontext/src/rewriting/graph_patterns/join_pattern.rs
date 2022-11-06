@@ -17,7 +17,7 @@ impl StaticQueryRewriter {
         let mut right_rewrite = self.rewrite_graph_pattern(right, &right_context);
 
         if left_rewrite.is_subquery || right_rewrite.is_subquery {
-            let ret = GPReturn::subquery(context.clone());
+            let ret = GPReturn::subquery();
             return ret;
         }
 

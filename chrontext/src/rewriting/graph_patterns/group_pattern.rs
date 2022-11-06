@@ -66,7 +66,7 @@ impl StaticQueryRewriter {
                     graph_pattern_rewrite.clone(),
                     &inner_context,
                 );
-                return GPReturn::subquery(inner_context.clone());
+                return GPReturn::subquery();
             }
         }
         graph_pattern_rewrite

@@ -122,7 +122,6 @@ impl StaticQueryRewriter {
                 Default::default(),
                 Default::default(),
                 Default::default(),
-                None,
                 false
             )
         } else {
@@ -144,7 +143,6 @@ impl StaticQueryRewriter {
                 variables_in_scope,
                 datatypes_in_scope,
                 external_ids_in_scope,
-                None,
                 false,
             );
             gpr

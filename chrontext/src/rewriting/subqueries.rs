@@ -5,16 +5,6 @@ use crate::query_context::{Context};
 use crate::rewriting::graph_patterns::GPReturn;
 use crate::rewriting::StaticQueryRewriter;
 
-#[derive(Debug)]
-pub enum SubQuery {
-    Filter(Context, Vec<Context>),
-    Group(Context),
-    Join(Context, Context),
-    LeftJoin(Context, Context, Vec<Context>),
-    Minus(Context, Context),
-    Union(Context, Context),
-}
-
 impl StaticQueryRewriter {
     pub(crate) fn create_add_subquery(&mut self, gpreturn: GPReturn, context: &Context) {
         if gpreturn.graph_pattern.is_some() {

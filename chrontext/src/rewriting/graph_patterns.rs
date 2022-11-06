@@ -29,7 +29,6 @@ pub struct GPReturn {
     pub(crate) variables_in_scope: HashSet<Variable>,
     pub(crate) datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
     pub(crate) external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
-    pub(crate) subquery_context: Option<Context>,
     pub(crate) is_subquery: bool
 }
 
@@ -40,7 +39,6 @@ impl GPReturn {
         variables_in_scope: HashSet<Variable>,
         datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
         external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
-        subquery_context: Option<Context>,
         is_subquery: bool,
     ) -> GPReturn {
         GPReturn {
@@ -49,19 +47,17 @@ impl GPReturn {
             variables_in_scope,
             datatypes_in_scope,
             external_ids_in_scope,
-            subquery_context,
             is_subquery
         }
     }
 
-    fn subquery(exploded_context:Context) -> GPReturn {
+    fn subquery() -> GPReturn {
         GPReturn {
             graph_pattern: None,
             rewritten:true,
             variables_in_scope: Default::default(),
             datatypes_in_scope: Default::default(),
             external_ids_in_scope: Default::default(),
-            subquery_context:Some(exploded_context),
             is_subquery:true
         }
     }

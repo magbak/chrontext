@@ -21,7 +21,7 @@ impl StaticQueryRewriter {
         if left_rewrite.is_subquery
             || right_rewrite.is_subquery
         {
-            return GPReturn::subquery(context.clone())
+            return GPReturn::subquery()
         }
 
         let left_graph_pattern = left_rewrite.graph_pattern.take().unwrap();

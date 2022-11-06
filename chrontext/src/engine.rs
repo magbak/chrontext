@@ -43,7 +43,7 @@ impl Engine {
         debug!("Produced static rewrite: {:?}", static_queries_map);
         debug!("Produced basic time series queries: {:?}", basic_time_series_queries);
 
-        let mut combiner = Combiner::new(self.endpoint.to_string(), Default::default(), self.time_series_database.take().unwrap(), basic_time_series_queries, rewritten_filters);
+        let mut combiner = Combiner::new(self.endpoint.to_string(), self.pushdown_settings.clone(), self.time_series_database.take().unwrap(), basic_time_series_queries, rewritten_filters);
         let solution_mappings = combiner.combine_static_and_time_series_results(
             static_queries_map,
             &parsed_query,

@@ -31,7 +31,7 @@ impl StaticQueryRewriter {
                 self.create_add_subquery(gp.clone(), ctx);
                 expression_subqueries_vec.push(ctx.clone())
             }
-            let ret = GPReturn::subquery(context.clone());
+            let ret = GPReturn::subquery();
             return ret;
         }
 

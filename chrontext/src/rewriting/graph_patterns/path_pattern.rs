@@ -25,7 +25,7 @@ impl StaticQueryRewriter {
             subject: subject.clone(),
             path: path.clone(),
             object: object.clone(),
-        }, false, variables_in_scope, Default::default(), Default::default(), None,false);
+        }, false, variables_in_scope, Default::default(), Default::default(), false);
         return gpr;
     }
 }
