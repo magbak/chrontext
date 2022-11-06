@@ -11,6 +11,9 @@ use polars_core::prelude::JoinType;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
+use crate::combiner::Combiner;
+use crate::combiner::solution_mapping::SolutionMappings;
+use crate::pushdown_setting::{all_pushdowns};
 
 pub struct InMemoryTimeseriesDatabase {
     pub frames: HashMap<String, DataFrame>,
@@ -60,9 +63,12 @@ impl InMemoryTimeseriesDatabase {
                     .into_iter()
                     .map(|x| x.to_string())
                     .collect();
-                let out_lf = lazy_expression(e, df.lazy(), &columns, &mut vec![], &tmp_context)
-                    .rename([tmp_context.as_str()], [v.as_str()]);
-                df = out_lf.collect().unwrap();
+                let solution_mappings = SolutionMappings::new(df.lazy(), columns, HashMap::new());
+                let mut combiner = Combiner::new("".to_string(), all_pushdowns(), Box::new(InMemoryTimeseriesDatabase{ frames: Default::default() }), vec![], Default::default());
+                let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
+                let mut out_lf = rt.block_on(combiner.lazy_expression(e, solution_mappings, None, None, &Context::new())).unwrap();
+                out_lf.mappings = out_lf.mappings.rename([tmp_context.as_str()], [v.as_str()]);
+                df = out_lf.mappings.collect().unwrap();
                 Ok(df)
             }
         }
@@ -113,11 +119,14 @@ impl InMemoryTimeseriesDatabase {
             .map(|x| x.to_string())
             .collect();
         let tmp_context = Context::from_path(vec![PathEntry::Coalesce(12)]);
-        let mut lf = lazy_expression(filter, df.lazy(), &columns, &mut vec![], &tmp_context);
-        lf = lf
+        let mut solution_mappings = SolutionMappings::new(df.lazy(), columns, HashMap::new());
+        let mut combiner = Combiner::new("".to_string(), all_pushdowns(), Box::new(InMemoryTimeseriesDatabase{ frames: Default::default() }), vec![], Default::default());
+        let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
+        solution_mappings = rt.block_on(combiner.lazy_expression(filter, solution_mappings,  None, None, &tmp_context)).unwrap();
+        solution_mappings.mappings = solution_mappings.mappings
             .filter(col(tmp_context.as_str()))
             .drop_columns([tmp_context.as_str()]);
-        Ok(lf.collect().unwrap())
+        Ok(solution_mappings.mappings.collect().unwrap())
     }
 
     fn execute_grouped(
@@ -138,23 +147,22 @@ impl InMemoryTimeseriesDatabase {
         } else {
             "timestamp".to_string()
         };
-        let timestamp_names = vec![timestamp_name];
         let mut aggregate_inner_contexts = vec![];
+        let mut combiner = Combiner::new("".to_string(), all_pushdowns(), Box::new(InMemoryTimeseriesDatabase{ frames: Default::default() }), vec![], Default::default());
+        let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
+        let mut solution_mappings = SolutionMappings::new(out_lf, columns, HashMap::new());
         for i in 0..grouped.aggregations.len() {
             let (v, agg) = grouped.aggregations.get(i).unwrap();
-            let (lf, agg_expr, used_context) =
-                sparql_aggregate_expression_as_lazy_column_and_expression(
+            let (new_solution_mappings, agg_expr, used_context) =
+                rt.block_on(combiner.sparql_aggregate_expression_as_lazy_column_and_expression(
                     v,
                     agg,
-                    &timestamp_names,
-                    &columns,
-                    out_lf,
-                    &mut vec![],
+                    solution_mappings,
                     &grouped
                         .context
                         .extension_with(PathEntry::GroupAggregation(i as u16)),
-                );
-            out_lf = lf;
+                )).unwrap();
+            solution_mappings = new_solution_mappings;
             aggregation_exprs.push(agg_expr);
             if let Some(inner_context) = used_context {
                 aggregate_inner_contexts.push(inner_context);
@@ -173,7 +181,7 @@ impl InMemoryTimeseriesDatabase {
             }
         }
 
-        let grouped_lf = out_lf.groupby(groupby);
+        let grouped_lf = solution_mappings.mappings.groupby(groupby);
         out_lf = grouped_lf.agg(aggregation_exprs.as_slice()).drop_columns(
             aggregate_inner_contexts
                 .iter()

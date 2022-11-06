@@ -1,7 +1,6 @@
 use super::StaticQueryRewriter;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
-use crate::rewriting::subqueries::{SubQuery, SubQueryInContext};
 use spargebra::algebra::GraphPattern;
 
 impl StaticQueryRewriter {
@@ -23,11 +22,7 @@ impl StaticQueryRewriter {
             if !right_rewrite.is_subquery {
                 self.create_add_subquery(right_rewrite, &right_context);
             }
-            self.subqueries_in_context.push(SubQueryInContext::new(
-                context.clone(),
-                SubQuery::Minus(left_context, right_context),
-            ));
-            let mut ret = GPReturn::subquery(context.clone());
+            let ret = GPReturn::subquery(context.clone());
             return ret;
         }
 
@@ -54,11 +49,7 @@ impl StaticQueryRewriter {
             self.create_add_subquery(left_rewrite, &left_context);
             self.create_add_subquery(right_rewrite, &right_context);
 
-            self.subqueries_in_context.push(SubQueryInContext::new(
-                context.clone(),
-                SubQuery::Minus(left_context, right_context),
-            ));
-            let mut ret = GPReturn::subquery(context.clone());
+            let ret = GPReturn::subquery(context.clone());
             return ret;
         }
     }

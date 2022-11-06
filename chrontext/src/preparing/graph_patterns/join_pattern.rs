@@ -24,7 +24,7 @@ impl TimeSeriesQueryPrepper {
                 solution_mappings,
                 &context.extension_with(PathEntry::JoinLeftSide),
             );
-            let mut right_prepare = self.prepare_graph_pattern(
+            let right_prepare = self.prepare_graph_pattern(
                 right,
                 try_groupby_complex_query,
                 solution_mappings,

@@ -46,14 +46,14 @@ impl TimeSeriesQueryPrepper {
                     }
                     if found_all && found_some {
                         found_i = Some(i);
-                        found_context = Some(c);
+                        found_context = Some(c.clone());
                     }
                 }
             }
             if let (Some(i), Some(c)) = (found_i,found_context) {
-                let inner_tsq = inner_prepare.time_series_queries.get_mut(c).unwrap().remove(i);
-                if inner_prepare.time_series_queries.get(c).unwrap().is_empty() {
-                    inner_prepare.time_series_queries.remove(c);
+                let inner_tsq = inner_prepare.time_series_queries.get_mut(&c).unwrap().remove(i);
+                if inner_prepare.time_series_queries.get(&c).unwrap().is_empty() {
+                    inner_prepare.time_series_queries.remove(&c);
                 }
                 let new_tsq =
                     TimeSeriesQuery::ExpressionAs(Box::new(inner_tsq), var.clone(), expr.clone());

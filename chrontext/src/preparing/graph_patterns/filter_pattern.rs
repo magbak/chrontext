@@ -17,13 +17,13 @@ impl TimeSeriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
-        let mut expression_prepare = self.prepare_expression(
+        let expression_prepare = self.prepare_expression(
             expression,
             try_groupby_complex_query,
             solution_mappings,
             &context.extension_with(PathEntry::FilterExpression),
         );
-        let mut inner_prepare = self.prepare_graph_pattern(
+        let inner_prepare = self.prepare_graph_pattern(
             inner,
             try_groupby_complex_query,
             solution_mappings,

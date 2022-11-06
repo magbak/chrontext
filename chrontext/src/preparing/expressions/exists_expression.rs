@@ -15,7 +15,7 @@ impl TimeSeriesQueryPrepper {
         if try_groupby_complex_query {
             EXPrepReturn::fail_groupby_complex_query()
         } else {
-            let mut wrapped_prepare = self.prepare_graph_pattern(
+            let wrapped_prepare = self.prepare_graph_pattern(
                 wrapped,
                 try_groupby_complex_query,
                 solution_mappings,

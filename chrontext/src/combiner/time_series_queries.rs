@@ -21,6 +21,7 @@ impl Combiner {
             .execute(tsq)
             .await
             .map_err(|x| CombinerError::TimeSeriesQueryError(x))?;
+        tsq.validate(&ts_df).map_err(|x|CombinerError::TimeSeriesValidationError(x))?;
         //Todo derive datatypes
         let ts_lf = ts_df.lazy();
         let on: Vec<Expr>;
@@ -51,7 +52,8 @@ pub(crate) fn split_time_series_queries(time_series_queries: &mut Option<HashMap
         }
         let mut new_map = HashMap::new();
         for k in split_keys {
-            new_map.insert(k, tsqs.remove(&k).unwrap());
+            let tsq = tsqs.remove(&k).unwrap();
+            new_map.insert(k,tsq);
         }
         Some(new_map)
     } else {

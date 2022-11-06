@@ -1,4 +1,3 @@
-mod join_timeseries;
 pub(crate) mod lazy_aggregate;
 pub(crate) mod lazy_expressions;
 pub(crate) mod lazy_graph_patterns;
@@ -12,10 +11,9 @@ use crate::query_context::Context;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::TimeSeriesQueryPrepper;
 use crate::pushdown_setting::PushdownSetting;
-use crate::rewriting::subqueries::SubQueryInContext;
 use crate::static_sparql::QueryExecutionError;
 use crate::timeseries_database::TimeSeriesQueryable;
-use crate::timeseries_query::BasicTimeSeriesQuery;
+use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesValidationError};
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
@@ -27,6 +25,7 @@ pub enum CombinerError {
     TimeSeriesQueryError(Box<dyn Error>),
     StaticQueryExecutionError(QueryExecutionError),
     InconsistentDatatype(String, String, String),
+    TimeSeriesValidationError(TimeSeriesValidationError)
 }
 
 impl Display for CombinerError {
@@ -45,6 +44,9 @@ impl Display for CombinerError {
             CombinerError::StaticQueryExecutionError(sqee) => {
                 write!(f, "Static query execution error {}", sqee)
             }
+            CombinerError::TimeSeriesValidationError(v) => {
+                write!(f, "Time series validation error {}", v)
+            }
         }
     }
 }
@@ -54,8 +56,7 @@ impl Error for CombinerError {}
 pub struct Combiner {
     counter: u16,
     endpoint: String,
-    time_series_database: Box<dyn TimeSeriesQueryable>,
-    static_subqueries_in_context: Vec<SubQueryInContext>,
+    pub time_series_database: Box<dyn TimeSeriesQueryable>,
     prepper: TimeSeriesQueryPrepper,
 }
 
@@ -66,7 +67,6 @@ impl Combiner {
         time_series_database: Box<dyn TimeSeriesQueryable>,
         basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
         rewritten_filters: HashMap<Context, Expression>,
-        static_subqueries_in_context: Vec<SubQueryInContext>,
     ) -> Combiner {
         let prepper = TimeSeriesQueryPrepper::new(
             pushdown_settings,
@@ -77,7 +77,6 @@ impl Combiner {
             counter: 0,
             endpoint,
             time_series_database,
-            static_subqueries_in_context,
             prepper,
         }
     }

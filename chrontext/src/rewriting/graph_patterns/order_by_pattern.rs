@@ -31,7 +31,7 @@ impl StaticQueryRewriter {
             })
             .collect::<Vec<OEReturn>>();
 
-        let mut inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
+        let inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
         if order_expressions_rewrite
             .iter()
             .any(|oer| oer.order_expression.is_some())

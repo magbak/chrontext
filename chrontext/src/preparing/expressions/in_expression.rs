@@ -19,7 +19,7 @@ impl TimeSeriesQueryPrepper {
             solution_mappings,
             &context.extension_with(PathEntry::InLeft),
         );
-        let mut prepared: Vec<EXPrepReturn> = expressions
+        let prepared: Vec<EXPrepReturn> = expressions
             .iter()
             .map(|x| self.prepare_expression(x, try_groupby_complex_query, solution_mappings, context))
             .collect();

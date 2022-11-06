@@ -40,7 +40,7 @@ pub(crate) fn create_static_query_dataframe(
         for s in &static_query_solutions {
             if let Some(term) = s.get(c) {
                 match term {
-                    Term::NamedNode(n) => {datatypes.insert(c.clone(), xsd::ANY_URI.into_owned());}
+                    Term::NamedNode(_) => {datatypes.insert(c.clone(), xsd::ANY_URI.into_owned());}
                     Term::Literal(l) => {datatypes.insert(c.clone(), l.datatype().into_owned());}
                     _ => {panic!("Not supported")} //Blank node
                 }

@@ -34,7 +34,7 @@ impl TimeSeriesQueryPrepper {
 
     pub fn prepare(&mut self, query: &Query, solution_mappings: &mut SolutionMappings) -> HashMap<Context, Vec<TimeSeriesQuery>> {
         if let Query::Select { pattern, .. } = query {
-            let mut pattern_prepared = self.prepare_graph_pattern(pattern, false, solution_mappings, &Context::new());
+            let pattern_prepared = self.prepare_graph_pattern(pattern, false, solution_mappings, &Context::new());
             pattern_prepared.time_series_queries
         } else {
             panic!("Only support for Select");

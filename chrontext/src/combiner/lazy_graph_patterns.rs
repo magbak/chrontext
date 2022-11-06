@@ -121,7 +121,7 @@ impl Combiner {
                 )
                 .await
             }
-            GraphPattern::Graph { name: _, inner } => {
+            GraphPattern::Graph { name: _, inner:_ } => {
                 todo!()
             }
             GraphPattern::Extend {

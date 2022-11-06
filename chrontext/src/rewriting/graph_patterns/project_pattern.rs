@@ -77,7 +77,7 @@ impl StaticQueryRewriter {
             }
         }
         GraphPattern::Project {
-            inner: Box::new(gpreturn.graph_pattern.unwrap().clone()),
+            inner: Box::new(gpreturn.graph_pattern.as_ref().unwrap().clone()),
             variables: variables_rewrite,
         }
     }

@@ -2,7 +2,6 @@ use super::StaticQueryRewriter;
 use crate::query_context::{Context, PathEntry};
 use crate::rewriting::aggregate_expression::AEReturn;
 use crate::rewriting::graph_patterns::GPReturn;
-use crate::rewriting::subqueries::{SubQuery, SubQueryInContext};
 use oxrdf::Variable;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 
@@ -24,7 +23,7 @@ impl StaticQueryRewriter {
                     .map(|v| self.rewrite_variable(v, context))
                     .collect();
 
-                let mut aes_rewritten: Vec<(Option<Variable>, AEReturn)> = aggregates
+                let aes_rewritten: Vec<(Option<Variable>, AEReturn)> = aggregates
                     .iter()
                     .enumerate()
                     .map(|(i, (v, a))| {
@@ -49,7 +48,7 @@ impl StaticQueryRewriter {
                             .variables_in_scope
                             .insert(v.as_ref().unwrap().clone());
                     }
-                    let mut inner_graph_pattern =
+                    let inner_graph_pattern =
                         graph_pattern_rewrite.graph_pattern.take().unwrap();
 
                     graph_pattern_rewrite.with_graph_pattern(GraphPattern::Group {
@@ -67,10 +66,6 @@ impl StaticQueryRewriter {
                     graph_pattern_rewrite.clone(),
                     &inner_context,
                 );
-                self.subqueries_in_context.push(SubQueryInContext::new(
-                    context.clone(),
-                    SubQuery::Group(inner_context.clone()),
-                ));
                 return GPReturn::subquery(inner_context.clone());
             }
         }

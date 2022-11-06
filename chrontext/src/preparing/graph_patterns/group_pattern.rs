@@ -89,8 +89,8 @@ impl TimeSeriesQueryPrepper {
             })
             .map(|x| x.as_str().to_string())
             .collect();
-        let solution_mappings_df = solution_mappings.mappings.collect().unwrap();
-        let mut df = solution_mappings_df
+        solution_mappings.mappings = solution_mappings.mappings.clone().collect().unwrap().lazy();
+        let mut df = solution_mappings.mappings.clone().collect().unwrap()
             .select(by_names.as_slice())
             .unwrap()
             .unique(Some(by_names.as_slice()), UniqueKeepStrategy::First)
@@ -98,7 +98,7 @@ impl TimeSeriesQueryPrepper {
         let mut series = Series::from_iter(0..(df.height() as i64));
         series.rename(&grouping_col);
         df.with_column(series).unwrap();
-        solution_mappings.mappings = solution_mappings_df
+        solution_mappings.mappings = solution_mappings.mappings.clone().collect().unwrap()
             .join(
                 &df,
                 by_names.as_slice(),
@@ -144,9 +144,8 @@ fn add_basic_groupby_mapping_values(
                 grouping_col,
                 b.identifier_variable.as_ref().unwrap().as_str(),
             ];
-            let df = solution_mappings.mappings.collect().unwrap();
-            let mapping_values = df.select(by_vec).unwrap();
-            solution_mappings.mappings = df.lazy();
+            solution_mappings.mappings = solution_mappings.mappings.clone().collect().unwrap().lazy();
+            let mapping_values = solution_mappings.mappings.clone().collect().unwrap().select(by_vec).unwrap();
             TimeSeriesQuery::GroupedBasic(b, mapping_values, grouping_col.to_string())
         }
         TimeSeriesQuery::Filtered(tsq, f) => TimeSeriesQuery::Filtered(

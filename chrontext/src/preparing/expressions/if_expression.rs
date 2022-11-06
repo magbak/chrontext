@@ -20,13 +20,13 @@ impl TimeSeriesQueryPrepper {
             solution_mappings,
             &context.extension_with(PathEntry::IfLeft),
         );
-        let mut mid_prepare = self.prepare_expression(
+        let mid_prepare = self.prepare_expression(
             mid,
             try_groupby_complex_query,
             solution_mappings,
             &context.extension_with(PathEntry::IfMiddle),
         );
-        let mut right_prepare = self.prepare_expression(
+        let right_prepare = self.prepare_expression(
             right,
             try_groupby_complex_query,
             solution_mappings,

@@ -1,13 +1,13 @@
 use super::Combiner;
 use crate::combiner::solution_mapping::SolutionMappings;
+use crate::combiner::time_series_queries::complete_basic_time_series_queries;
+use crate::combiner::CombinerError;
 use crate::query_context::Context;
+use crate::sparql_result_to_polars::create_static_query_dataframe;
 use crate::static_sparql::execute_sparql_query;
+use polars::prelude::IntoLazy;
 use spargebra::Query;
 use std::collections::HashMap;
-use polars::prelude::IntoLazy;
-use crate::combiner::CombinerError;
-use crate::combiner::time_series_queries::complete_basic_time_series_queries;
-use crate::sparql_result_to_polars::{create_static_query_dataframe};
 
 impl Combiner {
     pub async fn execute_static_query(
@@ -15,7 +15,9 @@ impl Combiner {
         query: &Query,
         solution_mappings: Option<SolutionMappings>,
     ) -> Result<SolutionMappings, CombinerError> {
-        let solutions = execute_sparql_query(&self.endpoint, query).await.map_err(|x|CombinerError::StaticQueryExecutionError(x))?;
+        let solutions = execute_sparql_query(&self.endpoint, query)
+            .await
+            .map_err(|x| CombinerError::StaticQueryExecutionError(x))?;
         complete_basic_time_series_queries(
             &solutions,
             &mut self.prepper.basic_time_series_queries,
@@ -42,7 +44,8 @@ pub(crate) fn split_static_queries(
     }
     let mut new_map = HashMap::new();
     for k in split_keys {
-        new_map.insert(k, static_queries.remove(&k).unwrap());
+        let q = static_queries.remove(&k).unwrap();
+        new_map.insert(k, q);
     }
     new_map
 }
@@ -52,17 +55,7 @@ pub(crate) fn split_static_queries_opt(
     context: &Context,
 ) -> Option<HashMap<Context, Query>> {
     if let Some(static_queries) = static_queries {
-        let mut split_keys = vec![];
-        for k in static_queries.keys() {
-            if k.path.iter().zip(&context.path).all(|(x, y)| x == y) {
-                split_keys.push(k.clone())
-            }
-        }
-        let mut new_map = HashMap::new();
-        for k in split_keys {
-            new_map.insert(k, static_queries.remove(&k).unwrap());
-        }
-        Some(new_map)
+        Some(split_static_queries(static_queries, context))
     } else {
         None
     }
