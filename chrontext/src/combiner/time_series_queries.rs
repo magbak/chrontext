@@ -22,7 +22,11 @@ impl Combiner {
             .await
             .map_err(|x| CombinerError::TimeSeriesQueryError(x))?;
         tsq.validate(&ts_df).map_err(|x|CombinerError::TimeSeriesValidationError(x))?;
-        //Todo derive datatypes
+        let datatypes = tsq.get_datatype_map();
+        for (k,v) in datatypes {
+            solution_mappings.datatypes.insert(k,v);
+        }
+
         let ts_lf = ts_df.lazy();
         let on: Vec<Expr>;
         if let Some(colname) = tsq.get_groupby_column() {

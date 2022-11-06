@@ -28,7 +28,7 @@ impl StaticQueryRewriter {
             &context.extension_with(PathEntry::ExtendExpression),
         );
 
-        if expr_rewrite.pushups.is_empty() {
+        if !expr_rewrite.pushups.is_empty() {
             unimplemented!("No support for exists with time series values in extend yet")
         }
 

@@ -32,7 +32,11 @@ impl Combiner {
         mappings = mappings.select(cols.as_slice());
         let mut new_datatypes = HashMap::new();
         for v in variables {
-            new_datatypes.insert(v.clone(), datatypes.remove(v).unwrap());
+            if !datatypes.contains_key(v) {
+                print!("Datatypes does not contain {}", v);
+            } else {
+                new_datatypes.insert(v.clone(), datatypes.remove(v).unwrap());
+            }
         }
         Ok(SolutionMappings::new(mappings, variables.iter().map(|x|x.as_str().to_string()).collect(), new_datatypes))
     }

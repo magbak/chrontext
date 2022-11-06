@@ -1,12 +1,13 @@
-use crate::find_query_variables::find_all_used_variables_in_expression;
+use crate::find_query_variables::{find_all_used_variables_in_aggregate_expression, find_all_used_variables_in_expression};
 use crate::query_context::{Context, VariableInContext};
 use oxrdf::NamedNode;
 use polars::frame::DataFrame;
 use spargebra::algebra::{AggregateExpression, Expression};
 use spargebra::term::Variable;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use oxrdf::vocab::xsd;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TimeSeriesQuery {
@@ -377,6 +378,54 @@ impl TimeSeriesQuery {
                 tsfs
             }
             TimeSeriesQuery::Grouped(tsq, ..) => tsq.tsq.get_timeseries_functions(context),
+        }
+    }
+
+
+    pub fn get_datatype_map(&self) -> HashMap<Variable, NamedNode> {
+        match self {
+            TimeSeriesQuery::Basic(b) => {
+                let mut map = HashMap::new();
+                if let Some(tsv) = &b.timestamp_variable {
+                    map.insert(tsv.variable.as_ref().into_owned(), xsd::DATE_TIME_STAMP.into_owned());
+                }
+                if let Some(v) = &b.value_variable.clone() {
+                    map.insert(v.variable.as_ref().into_owned(), b.datatype.as_ref().unwrap().clone());
+                }
+                map
+            }
+            TimeSeriesQuery::GroupedBasic(b, .. ) => {
+                HashMap::from([(b.value_variable.as_ref().unwrap().variable.clone(), b.datatype.as_ref().unwrap().clone())])
+            }
+            TimeSeriesQuery::Filtered(tsq, _) => tsq.get_datatype_map(),
+            TimeSeriesQuery::InnerSynchronized(tsqs, _) => {
+                let mut map = HashMap::new();
+                for tsq in tsqs {
+                    map.extend(tsq.get_datatype_map());
+                }
+                map
+            }
+            TimeSeriesQuery::ExpressionAs(tsq, v, e) => {
+                let mut map = tsq.get_datatype_map();
+                let mut used_vars = HashSet::new();
+                find_all_used_variables_in_expression(e, &mut used_vars);
+                for u in &used_vars {
+                    map.insert(v.clone(), map.get(u).unwrap().clone());
+                }
+                map
+            }
+            TimeSeriesQuery::Grouped(gr ) => {
+                let mut map = gr.tsq.get_datatype_map();
+                for (v,agg) in gr.aggregations.iter().rev() {
+                    let mut used_vars = HashSet::new();
+                    find_all_used_variables_in_aggregate_expression(&agg, &mut used_vars);
+                    for av in used_vars {
+                        //TODO: This is not correct.
+                        map.insert(v.clone(), map.get(&av).unwrap().clone());
+                    }
+                }
+                map
+            }
         }
     }
 }

@@ -19,6 +19,7 @@ use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use crate::preparing::graph_patterns::GPPrepReturn;
 
 #[derive(Debug)]
 pub enum CombinerError {
@@ -83,7 +84,7 @@ impl Combiner {
 
     pub async fn combine_static_and_time_series_results(
         &mut self,
-        static_query_map: HashMap<Context, Query>,
+        mut static_query_map: HashMap<Context, Query>,
         query: &Query,
     ) -> Result<SolutionMappings, CombinerError> {
         let context = Context::new();
@@ -93,8 +94,22 @@ impl Combiner {
             base_iri: _,
         } = query
         {
+            let solution_mappings;
+            let time_series_queries;
+            if let Some(static_query) = static_query_map.remove(&context) {
+                let mut new_solution_mappings = self.execute_static_query(&static_query, None).await?;
+                let new_time_series_queries = self
+                .prepper
+                .prepare(&query, &mut new_solution_mappings);
+                solution_mappings = Some(new_solution_mappings);
+                time_series_queries = Some(new_time_series_queries);
+            } else {
+                solution_mappings = None;
+                time_series_queries = None
+            }
+
             Ok(self
-                .lazy_graph_pattern(pattern, None, static_query_map, None, &context)
+                .lazy_graph_pattern(pattern, solution_mappings, static_query_map, time_series_queries, &context)
                 .await?)
         } else {
             panic!("Only select queries supported")

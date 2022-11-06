@@ -29,7 +29,7 @@ impl TimeSeriesQueryPrepper {
             solution_mappings,
             &context.extension_with(PathEntry::FilterInner),
         );
-        if expression_prepare.fail_groupby_complex_query && inner_prepare.fail_groupby_complex_query
+        if expression_prepare.fail_groupby_complex_query || inner_prepare.fail_groupby_complex_query
         {
             return GPPrepReturn::fail_groupby_complex_query();
         }
@@ -57,7 +57,7 @@ impl TimeSeriesQueryPrepper {
                     return GPPrepReturn::fail_groupby_complex_query();
                 }
                 if let Some(expr) = time_series_condition {
-                    if out_tsqs.contains_key(context) {
+                    if !out_tsqs.contains_key(context) {
                         out_tsqs.insert(context.clone(), vec![]);
                     }
                     out_tsqs.get_mut(context).unwrap().push(TimeSeriesQuery::Filtered(Box::new(t), expr))

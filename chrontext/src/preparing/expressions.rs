@@ -39,8 +39,13 @@ impl EXPrepReturn {
     }
 
     pub fn with_time_series_queries_from(&mut self, other: EXPrepReturn) {
-        self.time_series_queries
-            .extend(other.time_series_queries);
+        for (c,v) in other.time_series_queries {
+            if let Some(myv) = self.time_series_queries.get_mut(&c) {
+                myv.extend(v);
+            } else {
+                self.time_series_queries.insert(c, v);
+            }
+        }
     }
 
 }

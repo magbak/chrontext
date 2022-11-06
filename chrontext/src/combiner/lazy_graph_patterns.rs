@@ -47,6 +47,7 @@ impl Combiner {
         }
 
         if let Some(tsqs_map) = &mut new_prepared_time_series_queries {
+            println!("TSQS: {:?}, context: {:?}", tsqs_map, context);
             if let Some(tsqs) = tsqs_map.remove(context) {
                 for tsq in tsqs {
                     let new_solution_mappings = self
