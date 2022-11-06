@@ -24,6 +24,7 @@ impl Combiner {
         mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
+        debug!("Static: {:?}", static_query_map);
         let left_context = context.extension_with(PathEntry::MinusLeftSide);
         let right_context = context.extension_with(PathEntry::MinusRightSide);
         let left_prepared_time_series_queries =
@@ -38,10 +39,10 @@ impl Combiner {
         } else {
             true
         });
-        let minus_column = "minus_column".to_string() + self.counter.to_string().as_str();
+        let minus_column = left_context.as_str();
         self.counter += 1;
         debug!("Left graph pattern {}", left);
-        let left_solution_mappings = self
+        let mut left_solution_mappings = self
             .lazy_graph_pattern(
                 left,
                 solution_mappings,
@@ -51,18 +52,18 @@ impl Combiner {
             )
             .await?;
 
-        let SolutionMappings {
-            mappings: left_mappings,
-            columns: left_columns,
-            datatypes: left_datatypes,
-        } = left_solution_mappings.clone();
-        let mut left_df = left_mappings
+        let mut left_df = left_solution_mappings.mappings
             .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&minus_column))
             .with_column(col(&minus_column).cumsum(false).keep_name())
             .collect()
             .expect("Minus collect left problem");
+        left_solution_mappings.mappings = left_df.clone().lazy();
+        let left_columns = left_solution_mappings.columns.clone();
+        let left_datatypes = left_solution_mappings.datatypes.clone();
 
         debug!("Minus left hand side: {:?}", left_df);
+        debug!("Right static: {:?}", right_static_query_map);
+        debug!("Right prepared: {:?}", prepared_time_series_queries);
         //TODO: determine only variables actually used before copy
         let right_solution_mappings = self
             .lazy_graph_pattern(
@@ -78,6 +79,8 @@ impl Combiner {
             mappings: right_mappings,
             ..
         } = right_solution_mappings;
+        debug!("Minus right hand side {:?}", right_mappings.clone().collect().unwrap());
+
         let right_df = right_mappings
             .select([col(&minus_column)])
             .collect()

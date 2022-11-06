@@ -44,7 +44,7 @@ impl Combiner {
         } else {
             true
         });
-        let left_solution_mappings = self
+        let mut left_solution_mappings = self
             .lazy_graph_pattern(
                 left,
                 solution_mapping,
@@ -53,16 +53,14 @@ impl Combiner {
                 &left_context,
             )
             .await?;
-        let SolutionMappings {
-            mappings,
-            columns: mut left_columns,
-            datatypes: mut left_datatypes,
-        } = left_solution_mappings.clone();
-        let mut left_df = mappings
+        let mut left_df = left_solution_mappings.mappings
             .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&left_join_distinct_column))
             .with_column(col(&left_join_distinct_column).cumsum(false).keep_name())
             .collect()
             .expect("Left join collect left problem");
+        left_solution_mappings.mappings = left_df.clone().lazy();
+        let mut left_columns = left_solution_mappings.columns.clone();
+        let mut left_datatypes = left_solution_mappings.datatypes.clone();
 
         let mut right_solution_mappings = self
             .lazy_graph_pattern(

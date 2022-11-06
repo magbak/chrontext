@@ -5,9 +5,10 @@ use crate::combiner::CombinerError;
 use crate::query_context::Context;
 use crate::sparql_result_to_polars::create_static_query_dataframe;
 use crate::static_sparql::execute_sparql_query;
-use polars::prelude::IntoLazy;
+use polars::prelude::{col, Expr, IntoLazy};
 use spargebra::Query;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use polars_core::prelude::JoinType;
 
 impl Combiner {
     pub async fn execute_static_query(
@@ -22,13 +23,22 @@ impl Combiner {
             &solutions,
             &mut self.prepper.basic_time_series_queries,
         )?;
-        let (df, datatypes) = create_static_query_dataframe(query, solutions);
-        let columns = df
+        let (df, mut datatypes) = create_static_query_dataframe(query, solutions);
+        let mut columns:HashSet<String> = df
             .get_column_names()
             .iter()
             .map(|x| x.to_string())
             .collect();
-        Ok(SolutionMappings::new(df.lazy(), columns, datatypes))
+        let mut lf = df.lazy();
+        if let Some(SolutionMappings { mappings: input_lf, columns: input_columns, datatypes: input_datatypes }) = solution_mappings {
+            let on:Vec<&String> = columns.intersection(&input_columns).collect();
+            let on_cols:Vec<Expr> = on.iter().map(|x|col(x)).collect();
+            lf = lf.join(input_lf, on_cols.as_slice(), on_cols.as_slice(), JoinType::Inner);
+
+            columns.extend(input_columns);
+            datatypes.extend(input_datatypes);
+        }
+        Ok(SolutionMappings::new(lf, columns, datatypes))
     }
 }
 
