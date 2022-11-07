@@ -2,6 +2,7 @@ use super::TimeSeriesQueryPrepper;
 use crate::preparing::expressions::EXPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use spargebra::algebra::Expression;
+use crate::combiner::solution_mapping::SolutionMappings;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_and_expression(
@@ -9,6 +10,7 @@ impl TimeSeriesQueryPrepper {
         left: &Expression,
         right: &Expression,
         try_groupby_complex_query: bool,
+        solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> EXPrepReturn {
         // We allow translations of left- or right hand sides of And-expressions to be None.
@@ -16,17 +18,19 @@ impl TimeSeriesQueryPrepper {
         let mut left_prepare = self.prepare_expression(
             left,
             try_groupby_complex_query,
+            solution_mappings,
             &context.extension_with(PathEntry::AndLeft),
         );
-        let mut right_prepare = self.prepare_expression(
+        let right_prepare = self.prepare_expression(
             right,
             try_groupby_complex_query,
+            solution_mappings,
             &context.extension_with(PathEntry::AndRight),
         );
         if left_prepare.fail_groupby_complex_query || right_prepare.fail_groupby_complex_query {
             return EXPrepReturn::fail_groupby_complex_query();
         }
-        left_prepare.with_time_series_queries_from(&mut right_prepare);
+        left_prepare.with_time_series_queries_from(right_prepare);
         left_prepare
     }
 }

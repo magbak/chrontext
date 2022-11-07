@@ -26,6 +26,7 @@ impl StaticQueryRewriter {
         right: &Expression,
         operation: &BinaryOrdinaryOperator,
         variables_in_scope: &HashSet<Variable>,
+        create_subquery: bool,
         context: &Context,
     ) -> ExReturn {
         let (left_path_entry, right_path_entry, binary_expression): (
@@ -85,17 +86,19 @@ impl StaticQueryRewriter {
             left,
             &ChangeType::NoChange,
             variables_in_scope,
+            create_subquery,
             &context.extension_with(left_path_entry),
         );
         let mut right_rewrite = self.rewrite_expression(
             right,
             &ChangeType::NoChange,
             variables_in_scope,
+            create_subquery,
             &context.extension_with(right_path_entry),
         );
         let mut exr = ExReturn::new();
-        exr.with_pushups(&mut left_rewrite)
-            .with_pushups(&mut right_rewrite);
+        exr.with_is_subquery(&mut left_rewrite)
+            .with_is_subquery(&mut right_rewrite);
         if left_rewrite.expression.is_some()
             && left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
             && right_rewrite.expression.is_some()

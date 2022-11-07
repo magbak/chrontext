@@ -12,6 +12,7 @@ impl StaticQueryRewriter {
         fun: &Function,
         args: &Vec<Expression>,
         variables_in_scope: &HashSet<Variable>,
+        create_subquery: bool,
         context: &Context,
     ) -> ExReturn {
         let mut args_rewritten = args
@@ -22,13 +23,14 @@ impl StaticQueryRewriter {
                     e,
                     &ChangeType::NoChange,
                     variables_in_scope,
+                    create_subquery,
                     &context.extension_with(PathEntry::FunctionCall(i as u16)),
                 )
             })
             .collect::<Vec<ExReturn>>();
         let mut exr = ExReturn::new();
         for arg in args_rewritten.iter_mut() {
-            exr.with_pushups(arg);
+            exr.with_is_subquery(arg);
         }
         if args_rewritten.iter().all(|x| {
             x.expression.is_some() && x.change_type.as_ref().unwrap() == &ChangeType::NoChange

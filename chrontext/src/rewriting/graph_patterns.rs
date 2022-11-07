@@ -9,7 +9,7 @@ mod left_join_pattern;
 mod minus_pattern;
 mod order_by_pattern;
 mod path_pattern;
-mod project_pattern;
+pub(crate) mod project_pattern;
 mod reduced_pattern;
 mod service_pattern;
 mod sliced_pattern;
@@ -17,44 +17,48 @@ mod union_pattern;
 mod values_pattern;
 
 use super::StaticQueryRewriter;
-use crate::change_types::ChangeType;
 use crate::query_context::Context;
 use oxrdf::Variable;
 use spargebra::algebra::GraphPattern;
 use std::collections::{HashMap, HashSet};
 
+#[derive(Clone, Debug)]
 pub struct GPReturn {
     pub(crate) graph_pattern: Option<GraphPattern>,
-    pub(crate) change_type: ChangeType,
+    pub(crate) rewritten: bool,
     pub(crate) variables_in_scope: HashSet<Variable>,
     pub(crate) datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
     pub(crate) external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
+    pub(crate) is_subquery: bool
 }
 
 impl GPReturn {
     fn new(
         graph_pattern: GraphPattern,
-        change_type: ChangeType,
+        rewritten: bool,
         variables_in_scope: HashSet<Variable>,
         datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
         external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
+        is_subquery: bool,
     ) -> GPReturn {
         GPReturn {
             graph_pattern: Some(graph_pattern),
-            change_type,
+            rewritten,
             variables_in_scope,
             datatypes_in_scope,
             external_ids_in_scope,
+            is_subquery
         }
     }
 
-    fn none() -> GPReturn {
+    fn subquery() -> GPReturn {
         GPReturn {
             graph_pattern: None,
-            change_type: ChangeType::Relaxed,
+            rewritten:true,
             variables_in_scope: Default::default(),
             datatypes_in_scope: Default::default(),
             external_ids_in_scope: Default::default(),
+            is_subquery:true
         }
     }
 
@@ -63,8 +67,8 @@ impl GPReturn {
         self
     }
 
-    fn with_change_type(&mut self, change_type: ChangeType) -> &mut GPReturn {
-        self.change_type = change_type;
+    fn with_rewritten(&mut self, rewritten:bool) -> &mut GPReturn {
+        self.rewritten = rewritten;
         self
     }
 

@@ -109,7 +109,7 @@ impl TimeSeriesQueryable for OPCUAHistoryRead {
                 tsq,
                 start_time,
                 end_time,
-                &grouped.graph_pattern_context,
+                &grouped.context,
             );
             processed_details = Some(processed_details_some);
             timestamp_grouping_colname = colname;

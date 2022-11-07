@@ -8,43 +8,29 @@ impl StaticQueryRewriter {
     pub fn rewrite_exists_expression(
         &mut self,
         wrapped: &GraphPattern,
+        create_subquery: bool,
         context: &Context,
     ) -> ExReturn {
+        let exists_context = context.extension_with(PathEntry::Exists);
         let mut wrapped_rewrite = self.rewrite_graph_pattern(
             wrapped,
-            &context.extension_with(PathEntry::Exists),
+            &exists_context,
         );
-        let mut exr = ExReturn::new();
-        if wrapped_rewrite.graph_pattern.is_some() {
-            if wrapped_rewrite.change_type == ChangeType::NoChange {
+
+        if !wrapped_rewrite.is_subquery {
+            if !wrapped_rewrite.rewritten && !create_subquery {
+                let mut exr = ExReturn::new();
                 exr.with_expression(Expression::Exists(Box::new(
                     wrapped_rewrite.graph_pattern.take().unwrap(),
                 )))
                 .with_change_type(ChangeType::NoChange);
                 return exr;
             } else {
-                for (v, vs) in &wrapped_rewrite.external_ids_in_scope {
-                    self.additional_projections.insert(v.clone());
-                    for vprime in vs {
-                        self.additional_projections.insert(vprime.clone());
-                    }
-                }
-                for (v, vs) in &wrapped_rewrite.datatypes_in_scope {
-                    self.additional_projections.insert(v.clone());
-                    for vprime in vs {
-                        self.additional_projections.insert(vprime.clone());
-                    }
-                }
-                if let GraphPattern::Project { inner, .. } =
-                    wrapped_rewrite.graph_pattern.take().unwrap()
-                {
-                    exr.with_graph_pattern_pushup(*inner);
-                } else {
-                    todo!("Not supported")
-                }
-                return exr;
+                self.create_add_subquery(wrapped_rewrite, &exists_context);
+                return ExReturn::subquery();
             }
+        } else {
+            return ExReturn::subquery();
         }
-        exr
     }
 }

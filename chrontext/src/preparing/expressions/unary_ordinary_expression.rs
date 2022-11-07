@@ -2,6 +2,7 @@ use super::TimeSeriesQueryPrepper;
 use crate::preparing::expressions::EXPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use spargebra::algebra::Expression;
+use crate::combiner::solution_mapping::SolutionMappings;
 
 pub enum UnaryOrdinaryOperator {
     UnaryPlus,
@@ -14,6 +15,7 @@ impl TimeSeriesQueryPrepper {
         wrapped: &Expression,
         operation: &UnaryOrdinaryOperator,
         try_groupby_complex_query: bool,
+        solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> EXPrepReturn {
         let path_entry = match operation {
@@ -23,6 +25,7 @@ impl TimeSeriesQueryPrepper {
         let wrapped_prepare = self.prepare_expression(
             wrapped,
             try_groupby_complex_query,
+            solution_mappings,
             &context.extension_with(path_entry),
         );
         wrapped_prepare

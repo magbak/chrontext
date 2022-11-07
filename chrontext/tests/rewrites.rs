@@ -20,9 +20,10 @@ fn test_simple_query() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
-
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
@@ -31,7 +32,7 @@ fn test_simple_query() {
      ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
       }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, expected_query);
+    assert_eq!(static_rewrite, &expected_query);
 }
 
 #[test]
@@ -51,8 +52,10 @@ fn test_filtered_query() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
@@ -61,7 +64,7 @@ fn test_filtered_query() {
      ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
       }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, expected_query);
+    assert_eq!(static_rewrite, &expected_query);
 }
 
 #[test]
@@ -83,8 +86,10 @@ fn test_complex_expression_filter() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
@@ -94,7 +99,7 @@ fn test_complex_expression_filter() {
     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
     FILTER(?pv) }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, expected_query);
+    assert_eq!(static_rewrite, &expected_query);
 }
 
 #[test]
@@ -116,8 +121,10 @@ fn test_complex_expression_filter_projection() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 ?pv WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
@@ -127,7 +134,7 @@ fn test_complex_expression_filter_projection() {
     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, expected_query);
+    assert_eq!(static_rewrite, &expected_query);
 }
 
 #[test]
@@ -149,8 +156,10 @@ fn test_complex_nested_expression_filter() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_external_id_0 ?pv WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
@@ -160,7 +169,7 @@ fn test_complex_nested_expression_filter() {
     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
      }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, expected_query);
+    assert_eq!(static_rewrite, &expected_query);
 }
 
 #[test]
@@ -184,8 +193,10 @@ fn test_option_expression_filter_projection() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     SELECT ?var1 ?var2 ?pv ?ts_datatype_0 ?ts_external_id_0 WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
@@ -198,7 +209,7 @@ fn test_option_expression_filter_projection() {
     }
      }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, expected_query);
+    assert_eq!(static_rewrite, &expected_query);
 }
 
 #[test]
@@ -231,31 +242,44 @@ fn test_union_expression() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
-    let expected_str = r#"
-    SELECT ?var1 ?var2 ?pv ?ts_datatype_0 ?ts_datatype_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
-        ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-        OPTIONAL {
-            {
-              ?var2 <https://example.com/hasPropertyValue> ?pv .
-              ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-              ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-              ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
-              FILTER(!?pv)
-            }
-            UNION {
-              ?var2 <https://example.com/hasPropertyValue> ?pv .
-              ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .
-              ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 .
-              ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
-              FILTER(?pv)
-            }
-        }
-    }
-    "#;
-    let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, expected_query);
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 3);
+
+    let static_union_left_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::LeftJoinRightSide,
+            PathEntry::UnionLeftSide
+        ]))
+        .unwrap();
+    let expected_union_left_str =
+        r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . FILTER(!?pv) }"#;
+    let expected_union_left_query = Query::parse(expected_union_left_str, None).unwrap();
+    assert_eq!(static_union_left_rewrite, &expected_union_left_query);
+
+    let static_union_right_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::LeftJoinRightSide,
+            PathEntry::UnionRightSide
+        ]))
+        .unwrap();
+    let expected_union_right_str =
+        r#"SELECT ?pv ?ts ?ts_datatype_1 ?ts_external_id_1 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 .?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . FILTER(?pv) }"#;
+    let expected_union_right_query = Query::parse(expected_union_right_str, None).unwrap();
+    assert_eq!(static_union_right_rewrite, &expected_union_right_query);
+
+    let static_leftjoin_left_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::LeftJoinLeftSide,
+        ]))
+        .unwrap();
+    let expected_leftjoin_left_str =
+        r#"SELECT ?var1 ?var2 WHERE { ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 . }"#;
+    let expected_leftjoin_left_query = Query::parse(expected_leftjoin_left_str, None).unwrap();
+    assert_eq!(static_leftjoin_left_rewrite, &expected_leftjoin_left_query);
 }
 
 #[test]
@@ -280,8 +304,10 @@ fn test_bind_expression() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_datatype_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
@@ -293,7 +319,7 @@ fn test_bind_expression() {
     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts2 . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, expected_query);
+    assert_eq!(static_rewrite, &expected_query);
 }
 
 #[test]
@@ -314,8 +340,10 @@ fn test_fix_dropped_triple() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, time_series_queries) = rewriter.rewrite_query(preprocessed_query).unwrap();
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, time_series_queries, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
     PREFIX chrontext:<https://github.com/magbak/chrontext#>
@@ -328,7 +356,7 @@ fn test_fix_dropped_triple() {
         ?s chrontext:hasTimeseries ?ts .
     }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, expected_query);
+    assert_eq!(static_rewrite, &expected_query);
 
     let expected_time_series_queries = vec![BasicTimeSeriesQuery {
         identifier_variable: Some(Variable::new_unchecked("ts_external_id_0")),
@@ -391,8 +419,11 @@ fn test_property_path_expression() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, time_series_queries) = rewriter.rewrite_query(preprocessed_query).unwrap();
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, time_series_queries, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
+
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_datatype_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
@@ -483,7 +514,7 @@ fn test_property_path_expression() {
         },
     ];
     assert_eq!(time_series_queries, expected_time_series_queries);
-    assert_eq!(static_rewrite, expected_query);
+    assert_eq!(static_rewrite, &expected_query);
 }
 
 #[test]
@@ -511,17 +542,20 @@ fn test_having_query() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
-    let expected_str = r#"
-    SELECT ?w ?ts_datatype_0 ?ts_external_id_0 WHERE {
-    ?w <http://example.org/types#hasSensor> ?s .
-    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-    ?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
-    }"#;
-    let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(expected_query, static_rewrite);
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_groupby_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::ExtendInner,
+            PathEntry::FilterInner,
+            PathEntry::GroupInner
+        ]))
+        .unwrap();
+    let expected_groupby_str = r#"SELECT ?s ?ts ?ts_datatype_0 ?ts_external_id_0 ?w WHERE { ?w <http://example.org/types#hasSensor> ?s .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_groupby_query = Query::parse(expected_groupby_str, None).unwrap();
+    assert_eq!(static_groupby_rewrite, &expected_groupby_query);
     //println!("{}", static_rewrite);
 }
 
@@ -544,18 +578,30 @@ fn test_exists_query() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
-    let expected_str = r#"
-    SELECT ?w ?s ?ts ?ts_datatype_0 ?ts_external_id_0 WHERE {
-    ?w <http://example.org/types#hasSensor> ?s .
-    OPTIONAL {
-            ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-            ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-            ?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts . } }
-    "#;
-    let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(expected_query, static_rewrite);
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 2);
+    let static_inner_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::FilterInner,
+        ]))
+        .unwrap();
+    let expected_inner_str =
+        r#"SELECT ?s ?w WHERE { ?w <http://example.org/types#hasSensor> ?s . }"#;
+    let expected_inner_query = Query::parse(expected_inner_str, None).unwrap();
+    assert_eq!(static_inner_rewrite, &expected_inner_query);
+
+    let static_expr_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::FilterExpression,
+            PathEntry::Exists,
+        ]))
+        .unwrap();
+    let expected_expr_str = r#"SELECT ?s ?ts_datatype_0 ?ts_external_id_0 WHERE { ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_expr_query = Query::parse(expected_expr_str, None).unwrap();
+    assert_eq!(static_expr_rewrite, &expected_expr_query);
     //println!("{}", static_rewrite);
 }
 
@@ -586,9 +632,10 @@ fn test_filter_lost_bug() {
     let parsed = parse_sparql_select_query(sparql).unwrap();
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
-    let mut rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrite, _) = rewriter.rewrite_query(preprocessed_query).unwrap();
-
+    let rewriter = StaticQueryRewriter::new(&has_constraint);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
+    assert_eq!(static_rewrites_map.len(), 1);
+    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     SELECT ?site_label ?wtur_label ?ts ?ts_datatype_0 ?ts_external_id_0 WHERE {
     ?site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://github.com/magbak/chrontext/rds_power#Site> .
@@ -605,5 +652,5 @@ fn test_filter_lost_bug() {
     FILTER((?wtur_label = "A1"))
     }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(expected_query, static_rewrite);
+    assert_eq!(static_rewrite, &expected_query);
 }

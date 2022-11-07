@@ -3,14 +3,13 @@ mod expressions;
 mod graph_patterns;
 mod order_expression;
 mod project_static;
-mod pushups;
+mod subqueries;
 
-use crate::change_types::ChangeType;
 use crate::constraints::{Constraint, VariableConstraints};
 use crate::query_context::Context;
 use crate::rewriting::expressions::ExReturn;
 use crate::timeseries_query::BasicTimeSeriesQuery;
-use spargebra::algebra::Expression;
+use spargebra::algebra::{Expression};
 use spargebra::term::Variable;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
@@ -21,7 +20,8 @@ pub struct StaticQueryRewriter {
     additional_projections: HashSet<Variable>,
     variable_constraints: VariableConstraints,
     basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
-    pub rewritten_filters: HashMap<Context, Expression>,
+    static_subqueries: HashMap<Context, Query>,
+    rewritten_filters: HashMap<Context, Expression>,
 }
 
 impl StaticQueryRewriter {
@@ -31,41 +31,32 @@ impl StaticQueryRewriter {
             additional_projections: Default::default(),
             variable_constraints: variable_constraints.clone(),
             basic_time_series_queries: vec![],
+            static_subqueries: HashMap::new(),
             rewritten_filters: HashMap::new(),
         }
     }
 
-    pub fn rewrite_query(&mut self, query: Query) -> Option<(Query, Vec<BasicTimeSeriesQuery>)> {
+    pub fn rewrite_query(
+        mut self,
+        query: Query,
+    ) -> (HashMap<Context, Query>, Vec<BasicTimeSeriesQuery>, HashMap<Context, Expression>) {
         if let Query::Select {
             dataset,
             pattern,
             base_iri,
-        } = &query
+        } = query
         {
-            let mut pattern_rewrite =
-                self.rewrite_graph_pattern(pattern, &Context::new());
-            if pattern_rewrite.graph_pattern.is_some() {
-                if &pattern_rewrite.change_type == &ChangeType::NoChange
-                    || &pattern_rewrite.change_type == &ChangeType::Relaxed
-                {
-                    return Some((
-                        Query::Select {
-                            dataset: dataset.clone(),
-                            pattern: pattern_rewrite.graph_pattern.take().unwrap(),
-                            base_iri: base_iri.clone(),
-                        },
-                        self.basic_time_series_queries
-                            .drain(0..self.basic_time_series_queries.len())
-                            .collect(),
-                    ));
-                } else {
-                    None
-                }
-            } else {
-                None
+            let pattern_rewrite = self.rewrite_graph_pattern(&pattern, &Context::new());
+            if let Some(p) = pattern_rewrite.graph_pattern {
+                self.static_subqueries.insert(Context::new(), Query::Select {
+                    dataset,
+                    pattern: p,
+                    base_iri
+                });
             }
+            (self.static_subqueries, self.basic_time_series_queries, self.rewritten_filters)
         } else {
-            panic!("Only support for Select");
+            panic!("Only support for select query")
         }
     }
 

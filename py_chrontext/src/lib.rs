@@ -59,7 +59,7 @@ impl Engine {
             ));
         let db = afsqldb_result.map_err(PyQueryError::from)?;
         self.engine = Some(RustEngine::new(
-                    all_pushdowns(), Box::new(db)
+                    all_pushdowns(), Box::new(db), self.endpoint.clone()
                 ));
         Ok(())
     }
@@ -70,7 +70,7 @@ impl Engine {
         }
         let actual_db = RustOPCUAHistoryRead::new(&db.endpoint, db.namespace);
         self.engine = Some(RustEngine::new(
-                    [PushdownSetting::GroupBy].into(), Box::new(actual_db)
+                    [PushdownSetting::GroupBy].into(), Box::new(actual_db), self.endpoint.clone()
                 ));
         Ok(())
     }
@@ -89,8 +89,7 @@ impl Engine {
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
         let df_result = builder.build().unwrap().block_on(self.engine.as_mut().unwrap().execute_hybrid_query(
-                sparql,
-                &self.endpoint
+                sparql
             ));
         match df_result {
             Ok(mut df) => {

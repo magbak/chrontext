@@ -13,12 +13,14 @@ impl StaticQueryRewriter {
         expressions: &Vec<Expression>,
         required_change_direction: &ChangeType,
         variables_in_scope: &HashSet<Variable>,
+        create_subquery: bool,
         context: &Context,
     ) -> ExReturn {
         let mut left_rewrite = self.rewrite_expression(
             left,
             &ChangeType::NoChange,
             variables_in_scope,
+            create_subquery,
             &context.extension_with(PathEntry::InLeft),
         );
         let mut expressions_rewritten = expressions
@@ -29,14 +31,15 @@ impl StaticQueryRewriter {
                     e,
                     &ChangeType::NoChange,
                     variables_in_scope,
+                    create_subquery,
                     &context.extension_with(PathEntry::InRight(i as u16)),
                 )
             })
             .collect::<Vec<ExReturn>>();
         let mut exr = ExReturn::new();
-        exr.with_pushups(&mut left_rewrite);
+        exr.with_is_subquery(&mut left_rewrite);
         for rw_exr in expressions_rewritten.iter_mut() {
-            exr.with_pushups(rw_exr);
+            exr.with_is_subquery(rw_exr);
         }
 
         if left_rewrite.expression.is_some()

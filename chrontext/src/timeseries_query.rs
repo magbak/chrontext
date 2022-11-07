@@ -1,12 +1,14 @@
-use crate::find_query_variables::find_all_used_variables_in_expression;
+use crate::find_query_variables::{find_all_used_variables_in_aggregate_expression, find_all_used_variables_in_expression};
 use crate::query_context::{Context, VariableInContext};
 use oxrdf::NamedNode;
 use polars::frame::DataFrame;
 use spargebra::algebra::{AggregateExpression, Expression};
 use spargebra::term::Variable;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use log::warn;
+use oxrdf::vocab::xsd;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TimeSeriesQuery {
@@ -25,8 +27,8 @@ pub enum Synchronizer {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupedTimeSeriesQuery {
+    pub context: Context, //TODO: Fix this workaround properly
     pub tsq: Box<TimeSeriesQuery>,
-    pub graph_pattern_context: Context,
     pub by: Vec<Variable>,
     pub aggregations: Vec<(Variable, AggregateExpression)>,
 }
@@ -112,7 +114,7 @@ impl TimeSeriesQuery {
                 for (v, _) in &g.aggregations {
                     expected_columns.insert(v.as_str());
                 }
-                let tsfuncs = g.tsq.get_timeseries_functions(&g.graph_pattern_context);
+                let tsfuncs = g.tsq.get_timeseries_functions(&g.context);
                 for b in &g.by {
                     for (v, _) in &tsfuncs {
                         if b == *v {
@@ -232,6 +234,35 @@ impl TimeSeriesQuery {
                 }
             }
             TimeSeriesQuery::ExpressionAs(t, ..) => t.get_identifier_variables(),
+        }
+    }
+    
+    pub(crate) fn get_datatype_variables(&self) -> Vec<&Variable> {
+        match self {
+            TimeSeriesQuery::Basic(b) => {
+                if let Some(dt_var) = &b.datatype_variable {
+                    vec![dt_var]
+                } else {
+                    vec![]
+                }
+            }
+            TimeSeriesQuery::Filtered(inner, _) => inner.get_datatype_variables(),
+            TimeSeriesQuery::InnerSynchronized(inners, _) => {
+                let mut vs = vec![];
+                for inner in inners {
+                    vs.extend(inner.get_datatype_variables())
+                }
+                vs
+            }
+            TimeSeriesQuery::Grouped(grouped) => grouped.tsq.get_datatype_variables(),
+            TimeSeriesQuery::GroupedBasic(b, ..) => {
+                if let Some(dt_var) = &b.datatype_variable {
+                    vec![dt_var]
+                } else {
+                    vec![]
+                }
+            }
+            TimeSeriesQuery::ExpressionAs(t, ..) => t.get_datatype_variables(),
         }
     }
 
@@ -377,6 +408,58 @@ impl TimeSeriesQuery {
                 tsfs
             }
             TimeSeriesQuery::Grouped(tsq, ..) => tsq.tsq.get_timeseries_functions(context),
+        }
+    }
+
+
+    pub fn get_datatype_map(&self) -> HashMap<Variable, NamedNode> {
+        match self {
+            TimeSeriesQuery::Basic(b) => {
+                let mut map = HashMap::new();
+                if let Some(tsv) = &b.timestamp_variable {
+                    map.insert(tsv.variable.as_ref().into_owned(), xsd::DATE_TIME_STAMP.into_owned());
+                }
+                if let Some(v) = &b.value_variable.clone() {
+                    map.insert(v.variable.as_ref().into_owned(), b.datatype.as_ref().unwrap().clone());
+                }
+                map
+            }
+            TimeSeriesQuery::GroupedBasic(b, .. ) => {
+                HashMap::from([(b.value_variable.as_ref().unwrap().variable.clone(), b.datatype.as_ref().unwrap().clone())])
+            }
+            TimeSeriesQuery::Filtered(tsq, _) => tsq.get_datatype_map(),
+            TimeSeriesQuery::InnerSynchronized(tsqs, _) => {
+                let mut map = HashMap::new();
+                for tsq in tsqs {
+                    map.extend(tsq.get_datatype_map());
+                }
+                map
+            }
+            TimeSeriesQuery::ExpressionAs(tsq, v, e) => {
+                let mut map = tsq.get_datatype_map();
+                let mut used_vars = HashSet::new();
+                find_all_used_variables_in_expression(e, &mut used_vars);
+                for u in &used_vars {
+                    if map.contains_key(u) {
+                        map.insert(v.clone(), map.get(u).unwrap().clone());
+                    } else {
+                        warn!("Map does not contain datatype {:?}", u);
+                    }
+                }
+                map
+            }
+            TimeSeriesQuery::Grouped(gr ) => {
+                let mut map = gr.tsq.get_datatype_map();
+                for (v,agg) in gr.aggregations.iter().rev() {
+                    let mut used_vars = HashSet::new();
+                    find_all_used_variables_in_aggregate_expression(&agg, &mut used_vars);
+                    for av in used_vars {
+                        //TODO: This is not correct.
+                        map.insert(v.clone(), map.get(&av).unwrap().clone());
+                    }
+                }
+                map
+            }
         }
     }
 }

@@ -1,33 +1,33 @@
-use crate::combiner::lazy_expressions::lazy_expression;
 use crate::query_context::{Context, PathEntry};
-use crate::timeseries_query::TimeSeriesQuery;
-use polars::prelude::{DataFrame, LazyFrame};
 use spargebra::algebra::OrderExpression;
-use std::collections::HashSet;
+use crate::combiner::CombinerError;
+use crate::combiner::solution_mapping::SolutionMappings;
+use super::Combiner;
 
-pub fn lazy_order_expression(
-    oexpr: &OrderExpression,
-    lazy_frame: LazyFrame,
-    columns: &HashSet<String>,
-    time_series: &mut Vec<(TimeSeriesQuery, DataFrame)>,
-    context: &Context,
-) -> (LazyFrame, bool, Context) {
-    match oexpr {
-        OrderExpression::Asc(expr) => {
-            let inner_context = context.extension_with(PathEntry::OrderingOperation);
-            (
-                lazy_expression(expr, lazy_frame, columns, time_series, &inner_context),
-                true,
-                inner_context,
-            )
-        }
-        OrderExpression::Desc(expr) => {
-            let inner_context = context.extension_with(PathEntry::OrderingOperation);
-            (
-                lazy_expression(expr, lazy_frame, columns, time_series, &inner_context),
-                false,
-                inner_context,
-            )
+impl Combiner {
+    pub async fn lazy_order_expression(
+        &mut self,
+        oexpr: &OrderExpression,
+        solution_mappings: SolutionMappings,
+        context: &Context,
+    ) -> Result<(SolutionMappings, bool, Context), CombinerError> {
+        match oexpr {
+            OrderExpression::Asc(expr) => {
+                let inner_context = context.extension_with(PathEntry::OrderingOperation);
+                Ok((
+                    self.lazy_expression(expr, solution_mappings, None, None, &inner_context).await?,
+                    true,
+                    inner_context,
+                ))
+            }
+            OrderExpression::Desc(expr) => {
+                let inner_context = context.extension_with(PathEntry::OrderingOperation);
+                Ok((
+                    self.lazy_expression(expr, solution_mappings, None, None, &inner_context).await?,
+                    false,
+                    inner_context,
+                ))
+            }
         }
     }
 }

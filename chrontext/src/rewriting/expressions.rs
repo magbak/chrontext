@@ -15,13 +15,14 @@ use crate::query_context::Context;
 use crate::rewriting::expressions::binary_ordinary_expression::BinaryOrdinaryOperator;
 use crate::rewriting::expressions::unary_ordinary_expression::UnaryOrdinaryOperator;
 use oxrdf::Variable;
-use spargebra::algebra::{Expression, GraphPattern};
+use spargebra::algebra::Expression;
 use std::collections::HashSet;
 
+#[derive(Debug)]
 pub struct ExReturn {
     pub expression: Option<Expression>,
     pub change_type: Option<ChangeType>,
-    pub graph_pattern_pushups: Vec<GraphPattern>,
+    pub is_subquery: bool,
 }
 
 impl ExReturn {
@@ -29,7 +30,15 @@ impl ExReturn {
         ExReturn {
             expression: None,
             change_type: None,
-            graph_pattern_pushups: vec![],
+            is_subquery: false,
+        }
+    }
+
+    fn subquery() -> ExReturn {
+        ExReturn {
+            expression: None,
+            change_type: None,
+            is_subquery: true,
         }
     }
 
@@ -43,16 +52,8 @@ impl ExReturn {
         self
     }
 
-    fn with_graph_pattern_pushup(&mut self, graph_pattern: GraphPattern) -> &mut ExReturn {
-        self.graph_pattern_pushups.push(graph_pattern);
-        self
-    }
-
-    fn with_pushups(&mut self, exr: &mut ExReturn) -> &mut ExReturn {
-        self.graph_pattern_pushups.extend(
-            exr.graph_pattern_pushups
-                .drain(0..exr.graph_pattern_pushups.len()),
-        );
+    fn with_is_subquery(&mut self, other: &ExReturn) -> &mut ExReturn {
+        self.is_subquery = self.is_subquery || other.is_subquery;
         self
     }
 }
@@ -63,6 +64,7 @@ impl StaticQueryRewriter {
         expression: &Expression,
         required_change_direction: &ChangeType,
         variables_in_scope: &HashSet<Variable>,
+        create_subquery: bool,
         context: &Context,
     ) -> ExReturn {
         match expression {
@@ -94,6 +96,7 @@ impl StaticQueryRewriter {
                 right,
                 required_change_direction,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
 
@@ -102,6 +105,7 @@ impl StaticQueryRewriter {
                 right,
                 required_change_direction,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::Equal(left, right) => self.rewrite_binary_ordinary_expression(
@@ -109,6 +113,7 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::Equal,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::SameTerm(left, right) => self.rewrite_binary_ordinary_expression(
@@ -116,6 +121,7 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::SameTerm,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::Greater(left, right) => self.rewrite_binary_ordinary_expression(
@@ -123,6 +129,7 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::Greater,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::GreaterOrEqual(left, right) => self.rewrite_binary_ordinary_expression(
@@ -130,6 +137,7 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::GreaterOrEqual,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::Less(left, right) => self.rewrite_binary_ordinary_expression(
@@ -137,6 +145,7 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::Less,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::LessOrEqual(left, right) => self.rewrite_binary_ordinary_expression(
@@ -144,6 +153,7 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::LessOrEqual,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::In(left, expressions) => self.rewrite_in_expression(
@@ -151,6 +161,7 @@ impl StaticQueryRewriter {
                 expressions,
                 required_change_direction,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::Add(left, right) => self.rewrite_binary_ordinary_expression(
@@ -158,6 +169,7 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::Add,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::Subtract(left, right) => self.rewrite_binary_ordinary_expression(
@@ -165,6 +177,7 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::Subtract,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::Multiply(left, right) => self.rewrite_binary_ordinary_expression(
@@ -172,6 +185,7 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::Multiply,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::Divide(left, right) => self.rewrite_binary_ordinary_expression(
@@ -179,27 +193,33 @@ impl StaticQueryRewriter {
                 right,
                 &BinaryOrdinaryOperator::Divide,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::UnaryPlus(wrapped) => self.rewrite_unary_ordinary_expression(
                 wrapped,
                 &UnaryOrdinaryOperator::UnaryPlus,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::UnaryMinus(wrapped) => self.rewrite_unary_ordinary_expression(
                 wrapped,
                 &UnaryOrdinaryOperator::UnaryMinus,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
             Expression::Not(wrapped) => self.rewrite_not_expression(
                 wrapped,
                 required_change_direction,
                 variables_in_scope,
+                create_subquery,
                 context,
             ),
-            Expression::Exists(wrapped) => self.rewrite_exists_expression(wrapped, context),
+            Expression::Exists(wrapped) => {
+                self.rewrite_exists_expression(wrapped, create_subquery, context)
+            }
             Expression::Bound(v) => {
                 let mut exr = ExReturn::new();
                 if let Some(v_rewritten) = self.rewrite_variable(v, context) {
@@ -208,15 +228,27 @@ impl StaticQueryRewriter {
                 }
                 exr
             }
-            Expression::If(left, mid, right) => {
-                self.rewrite_if_expression(left, mid, right, variables_in_scope, context)
-            }
-            Expression::Coalesce(wrapped) => {
-                self.rewrite_coalesce_expression(wrapped, variables_in_scope, context)
-            }
-            Expression::FunctionCall(fun, args) => {
-                self.rewrite_function_call_expression(fun, args, variables_in_scope, context)
-            }
+            Expression::If(left, mid, right) => self.rewrite_if_expression(
+                left,
+                mid,
+                right,
+                variables_in_scope,
+                create_subquery,
+                context,
+            ),
+            Expression::Coalesce(wrapped) => self.rewrite_coalesce_expression(
+                wrapped,
+                variables_in_scope,
+                create_subquery,
+                context,
+            ),
+            Expression::FunctionCall(fun, args) => self.rewrite_function_call_expression(
+                fun,
+                args,
+                variables_in_scope,
+                create_subquery,
+                context,
+            ),
         }
     }
 }

@@ -1,5 +1,4 @@
 use super::StaticQueryRewriter;
-use crate::change_types::ChangeType;
 use crate::rewriting::graph_patterns::GPReturn;
 use spargebra::algebra::{GraphPattern, PropertyPathExpression};
 use spargebra::term::TermPattern;
@@ -22,17 +21,11 @@ impl StaticQueryRewriter {
             variables_in_scope.insert(o.clone());
         }
 
-        let gpr = GPReturn::new(
-            GraphPattern::Path {
-                subject: subject.clone(),
-                path: path.clone(),
-                object: object.clone(),
-            },
-            ChangeType::NoChange,
-            variables_in_scope,
-            Default::default(),
-            Default::default(),
-        );
+        let gpr = GPReturn::new(GraphPattern::Path {
+            subject: subject.clone(),
+            path: path.clone(),
+            object: object.clone(),
+        }, false, variables_in_scope, Default::default(), Default::default(), false);
         return gpr;
     }
 }

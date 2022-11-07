@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
 use crate::change_types::ChangeType;
 use crate::preparing::graph_patterns::filter_expression_rewrites::rewrite_filter_expression;
@@ -5,6 +6,7 @@ use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
 use spargebra::algebra::{Expression, GraphPattern};
+use crate::combiner::solution_mapping::SolutionMappings;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_filter(
@@ -12,47 +14,59 @@ impl TimeSeriesQueryPrepper {
         expression: &Expression,
         inner: &GraphPattern,
         try_groupby_complex_query: bool,
+        solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
-        let mut expression_prepare = self.prepare_expression(
+        let expression_prepare = self.prepare_expression(
             expression,
             try_groupby_complex_query,
+            solution_mappings,
             &context.extension_with(PathEntry::FilterExpression),
         );
-        let mut inner_prepare = self.prepare_graph_pattern(
+        let inner_prepare = self.prepare_graph_pattern(
             inner,
             try_groupby_complex_query,
+            solution_mappings,
             &context.extension_with(PathEntry::FilterInner),
         );
-        if expression_prepare.fail_groupby_complex_query && inner_prepare.fail_groupby_complex_query
+        if expression_prepare.fail_groupby_complex_query || inner_prepare.fail_groupby_complex_query
         {
             return GPPrepReturn::fail_groupby_complex_query();
         }
 
-        let mut out_tsqs = vec![];
-        out_tsqs.extend(expression_prepare.drained_time_series_queries());
-        for t in inner_prepare.drained_time_series_queries() {
-            let use_change_type = if try_groupby_complex_query {
-                ChangeType::NoChange
-            } else {
-                ChangeType::Relaxed
-            };
-            let conj_vec = conjunction_to_vec(self.rewritten_filters.get(&context));
-            let (time_series_condition, lost_value) = rewrite_filter_expression(
-                &t,
-                expression,
-                &use_change_type,
-                context,
-                &conj_vec,
-                &self.pushdown_settings,
-            );
-            if try_groupby_complex_query && (lost_value || time_series_condition.is_none()) {
-                return GPPrepReturn::fail_groupby_complex_query();
+        let mut out_tsqs = HashMap::new();
+        out_tsqs.extend(expression_prepare.time_series_queries);
+        for (inner_context, tsqs) in inner_prepare.time_series_queries {
+            let mut out_tsq_vec = vec![];
+            for t in tsqs {
+                let use_change_type = if try_groupby_complex_query {
+                    ChangeType::NoChange
+                } else {
+                    ChangeType::Relaxed
+                };
+                let conj_vec = conjunction_to_vec(self.rewritten_filters.get(&context));
+                let (time_series_condition, lost_value) = rewrite_filter_expression(
+                    &t,
+                    expression,
+                    &use_change_type,
+                    context,
+                    &conj_vec,
+                    &self.pushdown_settings,
+                );
+                if try_groupby_complex_query && (lost_value || time_series_condition.is_none()) {
+                    return GPPrepReturn::fail_groupby_complex_query();
+                }
+                if let Some(expr) = time_series_condition {
+                    if !out_tsqs.contains_key(context) {
+                        out_tsqs.insert(context.clone(), vec![]);
+                    }
+                    out_tsqs.get_mut(context).unwrap().push(TimeSeriesQuery::Filtered(Box::new(t), expr))
+                } else {
+                    out_tsq_vec.push(t);
+                }
             }
-            if let Some(expr) = time_series_condition {
-                out_tsqs.push(TimeSeriesQuery::Filtered(Box::new(t), expr))
-            } else {
-                out_tsqs.push(t);
+            if !out_tsq_vec.is_empty() {
+                out_tsqs.insert(inner_context, out_tsq_vec);
             }
         }
         GPPrepReturn::new(out_tsqs)

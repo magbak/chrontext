@@ -17,6 +17,7 @@ impl StaticQueryRewriter {
         wrapped: &Expression,
         operation: &UnaryOrdinaryOperator,
         variables_in_scope: &HashSet<Variable>,
+        create_subquery: bool,
         context: &Context,
     ) -> ExReturn {
         let (path_entry, expression): (_, fn(Box<Expression>) -> Expression) = match operation {
@@ -27,10 +28,11 @@ impl StaticQueryRewriter {
             wrapped,
             &ChangeType::NoChange,
             variables_in_scope,
+            create_subquery,
             &context.extension_with(path_entry),
         );
         let mut exr = ExReturn::new();
-        exr.with_pushups(&mut wrapped_rewrite);
+        exr.with_is_subquery(&mut wrapped_rewrite);
         if wrapped_rewrite.expression.is_some()
             && wrapped_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
         {

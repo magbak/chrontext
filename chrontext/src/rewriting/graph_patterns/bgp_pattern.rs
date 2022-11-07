@@ -1,5 +1,4 @@
 use super::StaticQueryRewriter;
-use crate::change_types::ChangeType;
 use crate::constants::{HAS_DATATYPE, HAS_DATA_POINT, HAS_EXTERNAL_ID, HAS_TIMESTAMP, HAS_VALUE};
 use crate::constraints::{Constraint, VariableConstraints};
 use crate::query_context::{Context, PathEntry, VariableInContext};
@@ -105,11 +104,11 @@ impl StaticQueryRewriter {
             }
         }
 
-        let use_change_type;
+        let rewritten;
         if dynamic_triples.len() > 0 {
-            use_change_type = ChangeType::Relaxed;
+            rewritten = true;
         } else {
-            use_change_type = ChangeType::NoChange;
+            rewritten = false;
         }
 
         //We wait until last to process the dynamic triples, making sure all relationships are known first.
@@ -117,7 +116,14 @@ impl StaticQueryRewriter {
         self.basic_time_series_queries.extend(new_basic_tsqs);
 
         if new_triples.is_empty() {
-            GPReturn::none()
+            GPReturn::new(
+                GraphPattern::Bgp { patterns: vec![] },
+                rewritten,
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                false
+            )
         } else {
             let mut variables_in_scope = HashSet::new();
             for t in &new_triples {
@@ -133,10 +139,11 @@ impl StaticQueryRewriter {
                 GraphPattern::Bgp {
                     patterns: new_triples,
                 },
-                use_change_type,
+                rewritten,
                 variables_in_scope,
                 datatypes_in_scope,
                 external_ids_in_scope,
+                false,
             );
             gpr
         }

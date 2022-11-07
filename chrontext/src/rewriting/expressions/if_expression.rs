@@ -13,30 +13,34 @@ impl StaticQueryRewriter {
         mid: &Expression,
         right: &Expression,
         variables_in_scope: &HashSet<Variable>,
+        create_subquery: bool,
         context: &Context,
     ) -> ExReturn {
         let mut left_rewrite = self.rewrite_expression(
             left,
             &ChangeType::NoChange,
             variables_in_scope,
+            create_subquery,
             &context.extension_with(PathEntry::IfLeft),
         );
         let mut mid_rewrite = self.rewrite_expression(
             mid,
             &ChangeType::NoChange,
             variables_in_scope,
+            create_subquery || left_rewrite.is_subquery,
             &context.extension_with(PathEntry::IfMiddle),
         );
         let mut right_rewrite = self.rewrite_expression(
             right,
             &ChangeType::NoChange,
             variables_in_scope,
+            create_subquery || left_rewrite.is_subquery || mid_rewrite.is_subquery,
             &context.extension_with(PathEntry::IfRight),
         );
         let mut exr = ExReturn::new();
-        exr.with_pushups(&mut left_rewrite)
-            .with_pushups(&mut mid_rewrite)
-            .with_pushups(&mut right_rewrite);
+        exr.with_is_subquery(&mut left_rewrite)
+            .with_is_subquery(&mut mid_rewrite)
+            .with_is_subquery(&mut right_rewrite);
         if left_rewrite.expression.is_some()
             && left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
             && mid_rewrite.expression.is_some()

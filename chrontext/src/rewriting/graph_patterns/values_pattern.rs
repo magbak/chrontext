@@ -1,5 +1,4 @@
 use super::StaticQueryRewriter;
-use crate::change_types::ChangeType;
 use crate::rewriting::graph_patterns::GPReturn;
 use oxrdf::Variable;
 use spargebra::algebra::GraphPattern;
@@ -17,10 +16,11 @@ impl StaticQueryRewriter {
                 variables: variables.iter().map(|v| v.clone()).collect(),
                 bindings: bindings.iter().map(|b| b.clone()).collect(),
             },
-            ChangeType::NoChange,
+            false,
             variables.iter().map(|v| v.clone()).collect(),
             HashMap::new(),
             HashMap::new(),
+            false,
         );
     }
 }
