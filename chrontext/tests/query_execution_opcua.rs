@@ -296,6 +296,17 @@ fn test_pushdown_group_by_five_second_hybrid_query(
         .block_on(engine.execute_hybrid_query(query))
         .expect("Hybrid error");
     df = df.sort(vec!["w", "datetime_seconds"], false).unwrap();
+    df.with_column(
+            df
+                .column("datetime_seconds")
+                .unwrap()
+                .cast(&polars::prelude::DataType::Datetime(
+                    polars::prelude::TimeUnit::Milliseconds,
+                    None,
+                ))
+                .unwrap(),
+        )
+        .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_group_by_five_second_hybrid_query.csv");
     let file = File::open(file_path.as_path()).expect("Read file problem");

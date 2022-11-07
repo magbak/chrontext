@@ -25,10 +25,11 @@ impl StaticQueryRewriter {
             expr,
             &ChangeType::NoChange,
             &inner_rewrite.variables_in_scope,
+            inner_rewrite.is_subquery,
             &context.extension_with(PathEntry::ExtendExpression),
         );
 
-        if !expr_rewrite.pushups.is_empty() {
+        if expr_rewrite.is_subquery {
             unimplemented!("No support for exists with time series values in extend yet")
         }
 

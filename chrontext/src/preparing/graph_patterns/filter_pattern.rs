@@ -29,6 +29,8 @@ impl TimeSeriesQueryPrepper {
             solution_mappings,
             &context.extension_with(PathEntry::FilterInner),
         );
+        println!("Innerprep {:?}", inner_prepare);
+        println!("expressionprep {:?}", expression_prepare);
         if expression_prepare.fail_groupby_complex_query || inner_prepare.fail_groupby_complex_query
         {
             return GPPrepReturn::fail_groupby_complex_query();
@@ -44,7 +46,9 @@ impl TimeSeriesQueryPrepper {
                 } else {
                     ChangeType::Relaxed
                 };
+                println!("rewritten filters: {:?}", self.rewritten_filters);
                 let conj_vec = conjunction_to_vec(self.rewritten_filters.get(&context));
+                println!("Conj. vec: {:?}", conj_vec);
                 let (time_series_condition, lost_value) = rewrite_filter_expression(
                     &t,
                     expression,
@@ -53,6 +57,7 @@ impl TimeSeriesQueryPrepper {
                     &conj_vec,
                     &self.pushdown_settings,
                 );
+                println!("Time series condition: {:?}, {}", time_series_condition, lost_value);
                 if try_groupby_complex_query && (lost_value || time_series_condition.is_none()) {
                     return GPPrepReturn::fail_groupby_complex_query();
                 }
@@ -64,8 +69,11 @@ impl TimeSeriesQueryPrepper {
                 } else {
                     out_tsq_vec.push(t);
                 }
+                println!("Out tsqs {:?}", out_tsqs);
             }
-            out_tsqs.insert(inner_context, out_tsq_vec);
+            if !out_tsq_vec.is_empty() {
+                out_tsqs.insert(inner_context, out_tsq_vec);
+            }
         }
         GPPrepReturn::new(out_tsqs)
     }

@@ -7,6 +7,7 @@ use spargebra::term::Variable;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use log::warn;
 use oxrdf::vocab::xsd;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -439,7 +440,11 @@ impl TimeSeriesQuery {
                 let mut used_vars = HashSet::new();
                 find_all_used_variables_in_expression(e, &mut used_vars);
                 for u in &used_vars {
-                    map.insert(v.clone(), map.get(u).unwrap().clone());
+                    if map.contains_key(u) {
+                        map.insert(v.clone(), map.get(u).unwrap().clone());
+                    } else {
+                        warn!("Map does not contain datatype {:?}", u);
+                    }
                 }
                 map
             }

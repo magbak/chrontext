@@ -23,22 +23,17 @@ impl Combiner {
             .map_err(|x| CombinerError::TimeSeriesQueryError(x))?;
         tsq.validate(&ts_df)
             .map_err(|x| CombinerError::TimeSeriesValidationError(x))?;
-        let datatypes = tsq.get_datatype_map();
-        for (k, v) in datatypes {
-            solution_mappings.datatypes.insert(k, v);
-        }
 
-        let ts_lf = ts_df.lazy();
-        let on: Vec<Expr>;
+        let mut on: Vec<String>;
         let mut drop_cols: Vec<String>;
         if let Some(colname) = tsq.get_groupby_column() {
-            on = vec![col(colname)];
+            on = vec![colname.to_string()];
             drop_cols = vec![colname.to_string()];
         } else {
             on = tsq
                 .get_identifier_variables()
                 .iter()
-                .map(|x| col(x.as_str()))
+                .map(|x| x.as_str().to_string())
                 .collect();
 
             drop_cols = tsq
@@ -53,11 +48,31 @@ impl Combiner {
                     .collect::<Vec<String>>()
             );
         }
+        let datatypes = tsq.get_datatype_map();
+        for (k, v) in datatypes {
+            solution_mappings.datatypes.insert(k, v);
+        }
+
+        //In order to join on timestamps when multiple synchronized tsqs.
+        for c in &solution_mappings.columns {
+            if ts_df.get_column_names().contains(&c.as_str()) && !on.contains(c) {
+                on.push(c.to_string())
+            }
+        }
+        let on_cols:Vec<Expr> = on.into_iter().map(|x|col(&x)).collect();
+        for c in ts_df.get_column_names() {
+            if !drop_cols.contains(&c.to_string()) {
+                solution_mappings.columns.insert(c.to_string());
+            }
+        }
+
+        let ts_lf = ts_df.lazy();
+
         println!("Dropcols {:?}", drop_cols);
 
         solution_mappings.mappings = solution_mappings
             .mappings
-            .join(ts_lf, on.as_slice(), on.as_slice(), JoinType::Inner)
+            .join(ts_lf, on_cols.as_slice(), on_cols.as_slice(), JoinType::Inner)
             .drop_columns(drop_cols.as_slice());
         return Ok(solution_mappings);
     }

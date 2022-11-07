@@ -21,7 +21,7 @@ fn test_simple_query() {
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrites_map, _,_) = rewriter.rewrite_query(preprocessed_query);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
     assert_eq!(static_rewrites_map.len(), 1);
     let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
@@ -53,7 +53,7 @@ fn test_filtered_query() {
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrites_map, _,_) = rewriter.rewrite_query(preprocessed_query);
+    let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
     assert_eq!(static_rewrites_map.len(), 1);
     let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
@@ -244,31 +244,42 @@ fn test_union_expression() {
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
-    assert_eq!(static_rewrites_map.len(), 1);
-    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
-    let expected_str = r#"
-    SELECT ?var1 ?var2 ?pv ?ts_datatype_0 ?ts_datatype_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
-        ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-        OPTIONAL {
-            {
-              ?var2 <https://example.com/hasPropertyValue> ?pv .
-              ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-              ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-              ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
-              FILTER(!?pv)
-            }
-            UNION {
-              ?var2 <https://example.com/hasPropertyValue> ?pv .
-              ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .
-              ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 .
-              ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
-              FILTER(?pv)
-            }
-        }
-    }
-    "#;
-    let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, &expected_query);
+    assert_eq!(static_rewrites_map.len(), 3);
+
+    let static_union_left_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::LeftJoinRightSide,
+            PathEntry::UnionLeftSide
+        ]))
+        .unwrap();
+    let expected_union_left_str =
+        r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . FILTER(!?pv) }"#;
+    let expected_union_left_query = Query::parse(expected_union_left_str, None).unwrap();
+    assert_eq!(static_union_left_rewrite, &expected_union_left_query);
+
+    let static_union_right_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::LeftJoinRightSide,
+            PathEntry::UnionRightSide
+        ]))
+        .unwrap();
+    let expected_union_right_str =
+        r#"SELECT ?pv ?ts ?ts_datatype_1 ?ts_external_id_1 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 .?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . FILTER(?pv) }"#;
+    let expected_union_right_query = Query::parse(expected_union_right_str, None).unwrap();
+    assert_eq!(static_union_right_rewrite, &expected_union_right_query);
+
+    let static_leftjoin_left_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::LeftJoinLeftSide,
+        ]))
+        .unwrap();
+    let expected_leftjoin_left_str =
+        r#"SELECT ?var1 ?var2 WHERE { ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 . }"#;
+    let expected_leftjoin_left_query = Query::parse(expected_leftjoin_left_str, None).unwrap();
+    assert_eq!(static_leftjoin_left_rewrite, &expected_leftjoin_left_query);
 }
 
 #[test]
@@ -330,7 +341,7 @@ fn test_fix_dropped_triple() {
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrites_map, time_series_queries,_) = rewriter.rewrite_query(preprocessed_query);
+    let (static_rewrites_map, time_series_queries, _) = rewriter.rewrite_query(preprocessed_query);
     assert_eq!(static_rewrites_map.len(), 1);
     let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
@@ -534,16 +545,17 @@ fn test_having_query() {
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
     assert_eq!(static_rewrites_map.len(), 1);
-    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
-    let expected_str = r#"
-    SELECT ?w ?ts_datatype_0 ?ts_external_id_0 WHERE {
-    ?w <http://example.org/types#hasSensor> ?s .
-    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-    ?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
-    }"#;
-    let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, &expected_query);
+    let static_groupby_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::ExtendInner,
+            PathEntry::FilterInner,
+            PathEntry::GroupInner
+        ]))
+        .unwrap();
+    let expected_groupby_str = r#"SELECT ?s ?ts ?ts_datatype_0 ?ts_external_id_0 ?w WHERE { ?w <http://example.org/types#hasSensor> ?s .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_groupby_query = Query::parse(expected_groupby_str, None).unwrap();
+    assert_eq!(static_groupby_rewrite, &expected_groupby_query);
     //println!("{}", static_rewrite);
 }
 
@@ -568,18 +580,28 @@ fn test_exists_query() {
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
-    assert_eq!(static_rewrites_map.len(), 1);
-    let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
-    let expected_str = r#"
-    SELECT ?w ?s ?ts ?ts_datatype_0 ?ts_external_id_0 WHERE {
-    ?w <http://example.org/types#hasSensor> ?s .
-    OPTIONAL {
-            ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-            ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-            ?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts . } }
-    "#;
-    let expected_query = Query::parse(expected_str, None).unwrap();
-    assert_eq!(static_rewrite, &expected_query);
+    assert_eq!(static_rewrites_map.len(), 2);
+    let static_inner_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::FilterInner,
+        ]))
+        .unwrap();
+    let expected_inner_str =
+        r#"SELECT ?s ?w WHERE { ?w <http://example.org/types#hasSensor> ?s . }"#;
+    let expected_inner_query = Query::parse(expected_inner_str, None).unwrap();
+    assert_eq!(static_inner_rewrite, &expected_inner_query);
+
+    let static_expr_rewrite = static_rewrites_map
+        .get(&Context::from_path(vec![
+            PathEntry::ProjectInner,
+            PathEntry::FilterExpression,
+            PathEntry::Exists,
+        ]))
+        .unwrap();
+    let expected_expr_str = r#"SELECT ?s ?ts_datatype_0 ?ts_external_id_0 WHERE { ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_expr_query = Query::parse(expected_expr_str, None).unwrap();
+    assert_eq!(static_expr_rewrite, &expected_expr_query);
     //println!("{}", static_rewrite);
 }
 

@@ -18,6 +18,7 @@ use crate::timeseries_query::TimeSeriesQuery;
 use spargebra::algebra::Expression;
 use crate::combiner::solution_mapping::SolutionMappings;
 
+#[derive(Debug)]
 pub struct EXPrepReturn {
     pub fail_groupby_complex_query: bool,
     pub time_series_queries: HashMap<Context, Vec<TimeSeriesQuery>>,
@@ -68,7 +69,9 @@ impl TimeSeriesQueryPrepper {
                 let exr = EXPrepReturn::new(HashMap::new());
                 exr
             }
-            Expression::Variable(..) => EXPrepReturn::new(HashMap::new()),
+            Expression::Variable(..) => {
+                EXPrepReturn::new(HashMap::new())
+            },
             Expression::Or(left, right) => {
                 self.prepare_or_expression(left, right, try_groupby_complex_query, solution_mappings, context)
             }

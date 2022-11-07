@@ -26,6 +26,7 @@ impl StaticQueryRewriter {
                 self.rewrite_order_expression(
                     e,
                     &inner_rewrite.variables_in_scope,
+                    inner_rewrite.is_subquery,
                     &context.extension_with(PathEntry::OrderByExpression(i as u16)),
                 )
             })

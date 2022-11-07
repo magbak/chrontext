@@ -17,6 +17,12 @@ impl StaticQueryRewriter {
         let mut right_rewrite = self.rewrite_graph_pattern(right, &right_context);
 
         if left_rewrite.is_subquery || right_rewrite.is_subquery {
+            if !left_rewrite.is_subquery {
+                self.create_add_subquery(left_rewrite, &left_context);
+            }
+            if !right_rewrite.is_subquery {
+                self.create_add_subquery(right_rewrite, &right_context);
+            }
             let ret = GPReturn::subquery();
             return ret;
         }

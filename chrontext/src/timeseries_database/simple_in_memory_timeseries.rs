@@ -143,11 +143,6 @@ impl InMemoryTimeseriesDatabase {
         let mut out_lf = df.lazy();
 
         let mut aggregation_exprs = vec![];
-        let timestamp_name = if let Some(ts_var) = grouped.tsq.get_timestamp_variables().get(0) {
-            ts_var.variable.as_str().to_string()
-        } else {
-            "timestamp".to_string()
-        };
         let mut aggregate_inner_contexts = vec![];
         let mut combiner = Combiner::new("".to_string(), all_pushdowns(), Box::new(InMemoryTimeseriesDatabase{ frames: Default::default() }), vec![], Default::default());
         let mut solution_mappings = SolutionMappings::new(out_lf, columns, HashMap::new());

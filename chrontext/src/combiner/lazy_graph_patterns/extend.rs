@@ -39,11 +39,16 @@ impl Combiner {
         );
         let mut output_solution_mappings =
             self.lazy_graph_pattern(inner, input_solution_mappings, inner_static_query_map, inner_prepared_time_series_queries, &inner_context).await?;
+        println!("Output solution mappings {}", output_solution_mappings.mappings.clone().collect().unwrap());
+        println!("Output solution columns {:?}", &output_solution_mappings.columns);
+        println!("Output solution variable {:?}", variable);
         if !output_solution_mappings.columns.contains(variable.as_str()) {
             output_solution_mappings = self.lazy_expression(expression, output_solution_mappings, Some(expression_static_query_map), expression_prepared_time_series_queries, &expression_context).await?;
             output_solution_mappings.mappings = output_solution_mappings.mappings.rename([expression_context.as_str()], &[variable.as_str()]);
             output_solution_mappings.columns.insert(variable.as_str().to_string());
+            println!("Nopanic!");
         }
+        println!("Nopanic!");
         Ok(output_solution_mappings)
     }
 }

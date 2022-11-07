@@ -17,27 +17,28 @@ impl StaticQueryRewriter {
         let right_context = context.extension_with(PathEntry::LeftJoinRightSide);
         let mut right_rewrite = self.rewrite_graph_pattern(right, &right_context);
 
+        //Important for expressions to be able to see all variables
+        left_rewrite.variables_in_scope.extend(right_rewrite.variables_in_scope.clone());
+
         if let Some(expression) = expression_opt {
             let expression_context = context.extension_with(PathEntry::LeftJoinExpression);
             let mut expression_rewrite = self.rewrite_expression(
                 expression,
                 &ChangeType::Relaxed,
                 &left_rewrite.variables_in_scope,
+                left_rewrite.is_subquery || right_rewrite.is_subquery,
                 &expression_context,
             );
+            println!("Expression rewrite: {:?}", expression_rewrite);
             if left_rewrite.is_subquery
                 || right_rewrite.is_subquery
-                || !expression_rewrite.pushups.is_empty()
+                || expression_rewrite.is_subquery
             {
-                let mut expression_contexts = vec![];
-                for (gp, ctx) in expression_rewrite
-                    .pushups
-                    .iter()
-                    .zip(expression_rewrite.pushup_contexts.iter())
-                {
-                    //TODO: Fix the context so these things are recoverable..
-                    self.create_add_subquery(gp.clone(), ctx);
-                    expression_contexts.push(ctx.clone());
+                if !left_rewrite.is_subquery {
+                    self.create_add_subquery(left_rewrite, &left_context);
+                }
+                if !right_rewrite.is_subquery {
+                    self.create_add_subquery(right_rewrite, &right_context);
                 }
                 let ret = GPReturn::subquery();
                 return ret;
@@ -61,6 +62,12 @@ impl StaticQueryRewriter {
         } else {
             let left_rewritten = left_rewrite.rewritten;
             if left_rewrite.is_subquery || right_rewrite.is_subquery {
+                if !left_rewrite.is_subquery {
+                    self.create_add_subquery(left_rewrite, &left_context);
+                }
+                if !right_rewrite.is_subquery {
+                    self.create_add_subquery(right_rewrite, &right_context);
+                }
                 let ret = GPReturn::subquery();
                 return ret;
             } else {

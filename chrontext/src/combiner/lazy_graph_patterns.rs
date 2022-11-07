@@ -13,9 +13,10 @@ use super::Combiner;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
 use crate::preparing::graph_patterns::GPPrepReturn;
-use crate::query_context::Context;
+use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
 use async_recursion::async_recursion;
+use log::debug;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
@@ -37,7 +38,18 @@ impl Combiner {
         let mut updated_solution_mappings = solution_mappings;
         let mut new_prepared_time_series_queries = prepared_time_series_queries;
 
-        if let Some(query) = static_query_map.remove(context) {
+        //We have to eagerly evaluate static queries contained in the group by pattern since otherwise we are unable to push down the group by into the time series database.
+        let mut found_group_by_pushdown = false;
+        let mut static_query_opt = static_query_map.remove(&context);
+        if static_query_opt.is_none() {
+            let groupby_inner_context = context.extension_with(PathEntry::GroupInner);
+            static_query_opt = static_query_map.remove(&groupby_inner_context);
+            if static_query_opt.is_some() {
+                found_group_by_pushdown = true;
+            }
+        }
+
+        if let Some(query) = static_query_opt {
             let mut new_solution_mappings = self
                 .execute_static_query(&query, updated_solution_mappings)
                 .await?;
@@ -50,6 +62,10 @@ impl Combiner {
                 &mut new_solution_mappings,
                 &context,
             );
+            println!(
+                "New solution mappings {}",
+                new_solution_mappings.mappings.clone().collect().unwrap()
+            );
             updated_solution_mappings = Some(new_solution_mappings);
             new_prepared_time_series_queries = Some(time_series_queries);
         }
@@ -58,12 +74,21 @@ impl Combiner {
             println!("TSQS: {:?}, context: {:?}", tsqs_map, context);
             if let Some(tsqs) = tsqs_map.remove(context) {
                 for tsq in tsqs {
+                    debug!("Attached time series query at context: {:?}", context);
                     let new_solution_mappings = self
                         .execute_attach_time_series_query(&tsq, updated_solution_mappings.unwrap())
                         .await?;
                     updated_solution_mappings = Some(new_solution_mappings);
                 }
             }
+        }
+
+        if found_group_by_pushdown
+            && (new_prepared_time_series_queries.is_none()
+                || (new_prepared_time_series_queries.is_some()
+                    && new_prepared_time_series_queries.as_ref().unwrap().is_empty()))
+        {
+            return Ok(updated_solution_mappings.unwrap());
         }
 
         if static_query_map.is_empty()
@@ -79,12 +104,8 @@ impl Combiner {
         }
 
         match graph_pattern {
-            GraphPattern::Bgp { .. } => {
-                Ok(updated_solution_mappings.unwrap())
-            }
-            GraphPattern::Path { .. } => {
-                Ok(updated_solution_mappings.unwrap())
-            }
+            GraphPattern::Bgp { .. } => Ok(updated_solution_mappings.unwrap()),
+            GraphPattern::Path { .. } => Ok(updated_solution_mappings.unwrap()),
             GraphPattern::Join { left, right } => {
                 self.lazy_join(
                     left,
@@ -134,9 +155,7 @@ impl Combiner {
                 )
                 .await
             }
-            GraphPattern::Graph { name: _, inner: _ } => {
-                Ok(updated_solution_mappings.unwrap())
-            }
+            GraphPattern::Graph { name: _, inner: _ } => Ok(updated_solution_mappings.unwrap()),
             GraphPattern::Extend {
                 inner,
                 variable,
@@ -167,9 +186,7 @@ impl Combiner {
             GraphPattern::Values {
                 variables: _,
                 bindings: _,
-            } => {
-                Ok(updated_solution_mappings.unwrap())
-            }
+            } => Ok(updated_solution_mappings.unwrap()),
             GraphPattern::OrderBy { inner, expression } => {
                 self.lazy_order_by(
                     inner,
@@ -224,9 +241,7 @@ impl Combiner {
                 )
                 .await
             }
-            GraphPattern::Service { .. } => {
-                Ok(updated_solution_mappings.unwrap())
-            }
+            GraphPattern::Service { .. } => Ok(updated_solution_mappings.unwrap()),
         }
     }
 }

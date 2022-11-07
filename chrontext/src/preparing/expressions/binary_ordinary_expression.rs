@@ -57,6 +57,8 @@ impl TimeSeriesQueryPrepper {
             solution_mappings,
             &context.extension_with(right_path_entry),
         );
+        println!("Left prepare: {:?}", left_prepare);
+        println!("Right prepare: {:?}", right_prepare);
         if left_prepare.fail_groupby_complex_query || right_prepare.fail_groupby_complex_query {
             return EXPrepReturn::fail_groupby_complex_query();
         }

@@ -19,19 +19,11 @@ impl StaticQueryRewriter {
             expression,
             &ChangeType::Relaxed,
             &inner_rewrite.variables_in_scope,
+            inner_rewrite.is_subquery,
             &expression_context,
         );
-        if !expression_rewrite.pushups.is_empty() || inner_rewrite.is_subquery {
-            let mut expression_subqueries_vec = vec![];
-
-            for (gp, ctx) in expression_rewrite
-                .pushups
-                .iter()
-                .zip(expression_rewrite.pushup_contexts.iter())
-            {
-                self.create_add_subquery(gp.clone(), ctx);
-                expression_subqueries_vec.push(ctx.clone())
-            }
+        println!("Expression rewrite: {:?}", expression_rewrite);
+        if expression_rewrite.is_subquery || inner_rewrite.is_subquery {
             if !inner_rewrite.is_subquery {
                 self.create_add_subquery(inner_rewrite, &inner_context);
             }

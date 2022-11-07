@@ -27,6 +27,7 @@ impl StaticQueryRewriter {
         &mut self,
         order_expression: &OrderExpression,
         variables_in_scope: &HashSet<Variable>,
+        create_subquery:bool,
         context: &Context,
     ) -> OEReturn {
         let mut oer = OEReturn::new();
@@ -36,9 +37,10 @@ impl StaticQueryRewriter {
                     e,
                     &ChangeType::NoChange,
                     variables_in_scope,
+                    create_subquery,
                     &context.extension_with(PathEntry::OrderingOperation),
                 );
-                if !e_rewrite.pushups.is_empty() {
+                if e_rewrite.is_subquery {
                     unimplemented!("Exists patterns containing time series values within aggregation is not supported")
                 }
                 if e_rewrite.expression.is_some() {
@@ -52,9 +54,10 @@ impl StaticQueryRewriter {
                     e,
                     &ChangeType::NoChange,
                     variables_in_scope,
+                    create_subquery,
                     &context.extension_with(PathEntry::OrderingOperation),
                 );
-                if !e_rewrite.pushups.is_empty() {
+                if e_rewrite.is_subquery {
                     unimplemented!("Exists patterns containing time series values within aggregation is not supported")
                 }
                 if e_rewrite.expression.is_some() {

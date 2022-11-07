@@ -12,16 +12,18 @@ impl StaticQueryRewriter {
         wrapped: &Expression,
         required_change_direction: &ChangeType,
         variables_in_scope: &HashSet<Variable>,
+        create_subquery: bool,
         context: &Context,
     ) -> ExReturn {
         let mut wrapped_rewrite = self.rewrite_expression(
             wrapped,
             &required_change_direction.opposite(),
             variables_in_scope,
+            create_subquery,
             &context.extension_with(PathEntry::Not),
         );
         let mut exr = ExReturn::new();
-        exr.with_pushups_and_contexts(&mut wrapped_rewrite);
+        exr.with_is_subquery(&mut wrapped_rewrite);
         if wrapped_rewrite.expression.is_some() {
             let wrapped_change = wrapped_rewrite.change_type.take().unwrap();
             let use_change_type = match wrapped_change {
