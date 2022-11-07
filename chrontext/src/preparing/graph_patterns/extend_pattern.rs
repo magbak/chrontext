@@ -50,7 +50,6 @@ impl TimeSeriesQueryPrepper {
                     }
                 }
             }
-            println!("c and i {:?}, {:?}", found_i, found_context);
             if let (Some(i), Some(c)) = (found_i,found_context) {
                 let inner_tsq = inner_prepare.time_series_queries.get_mut(&c).unwrap().remove(i);
                 if inner_prepare.time_series_queries.get(&c).unwrap().is_empty() {
@@ -62,7 +61,6 @@ impl TimeSeriesQueryPrepper {
                     inner_prepare.time_series_queries.insert(context.clone(), vec![]);
                 }
                 inner_prepare.time_series_queries.get_mut(context).unwrap().push(new_tsq);
-                println!("Extend pattern inner prepare: {:?}", inner_prepare);
                 inner_prepare
             } else {
                 GPPrepReturn::fail_groupby_complex_query()

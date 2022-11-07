@@ -31,7 +31,6 @@ impl Combiner {
         assert!(static_query_map.is_empty());
         assert!(
             if let Some(tsqs) = prepared_time_series_queries {
-                println!("TSQS {:?}", tsqs);
                 tsqs.is_empty()
             } else {
                 true

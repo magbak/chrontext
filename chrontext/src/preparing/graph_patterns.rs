@@ -64,7 +64,6 @@ impl TimeSeriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
-        println!("Prepare gp: {:?}, {:?}, {:?}, {:?}", graph_pattern, try_groupby_complex_query, context, self.basic_time_series_queries);
         match graph_pattern {
             GraphPattern::Bgp { patterns: _ } => {
                 self.prepare_bgp(try_groupby_complex_query , context)

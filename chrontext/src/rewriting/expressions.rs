@@ -67,7 +67,6 @@ impl StaticQueryRewriter {
         create_subquery: bool,
         context: &Context,
     ) -> ExReturn {
-        println!("Expression: {:?}, context {:?}", expression, context);
         match expression {
             Expression::NamedNode(nn) => {
                 let mut exr = ExReturn::new();

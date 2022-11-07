@@ -15,13 +15,11 @@ impl TimeSeriesQueryPrepper {
         let bgp_context = context.extension_with(PathEntry::BGP);
         for tsq in &self.basic_time_series_queries {
             if let Some(dp_ctx) = &tsq.data_point_variable {
-                println!("Bgp context: {:?}, dpcontext: {:?}", bgp_context, dp_ctx.context);
                 if &dp_ctx.context == &bgp_context {
                     local_tsqs.push(TimeSeriesQuery::Basic(tsq.clone()));
                 }
             }
         }
-        println!("Locals: {:?}", local_tsqs);
         if try_groupby_complex_query {
             local_tsqs = create_identity_synchronized_queries(local_tsqs);
         }
@@ -29,7 +27,6 @@ impl TimeSeriesQueryPrepper {
         if !local_tsqs.is_empty() {
             tsqs_map.insert(context.clone(), local_tsqs);
         }
-        println!("Map: {:?}", tsqs_map);
         GPPrepReturn::new(tsqs_map)
     }
 }

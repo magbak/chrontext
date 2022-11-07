@@ -32,7 +32,6 @@ impl StaticQueryRewriter {
             create_subquery,
             &context.extension_with(PathEntry::AndRight),
         );
-        println!("And right: {:?}", right_rewrite);
         let mut exr = ExReturn::new();
         exr.with_is_subquery(&mut left_rewrite)
             .with_is_subquery(&mut right_rewrite);

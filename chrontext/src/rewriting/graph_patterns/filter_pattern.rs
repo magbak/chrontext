@@ -22,7 +22,6 @@ impl StaticQueryRewriter {
             inner_rewrite.is_subquery,
             &expression_context,
         );
-        println!("Expression rewrite: {:?}", expression_rewrite);
         if expression_rewrite.is_subquery || inner_rewrite.is_subquery {
             if !inner_rewrite.is_subquery {
                 self.create_add_subquery(inner_rewrite, &inner_context);

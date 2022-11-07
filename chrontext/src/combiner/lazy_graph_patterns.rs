@@ -31,10 +31,6 @@ impl Combiner {
         prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
-        println!("Context: {:?}", context);
-        println!("Static query map: {:?}", static_query_map);
-        println!("Prpeared tsqs {:?}", prepared_time_series_queries);
-
         let mut updated_solution_mappings = solution_mappings;
         let mut new_prepared_time_series_queries = prepared_time_series_queries;
 
@@ -62,16 +58,11 @@ impl Combiner {
                 &mut new_solution_mappings,
                 &context,
             );
-            println!(
-                "New solution mappings {}",
-                new_solution_mappings.mappings.clone().collect().unwrap()
-            );
             updated_solution_mappings = Some(new_solution_mappings);
             new_prepared_time_series_queries = Some(time_series_queries);
         }
 
         if let Some(tsqs_map) = &mut new_prepared_time_series_queries {
-            println!("TSQS: {:?}, context: {:?}", tsqs_map, context);
             if let Some(tsqs) = tsqs_map.remove(context) {
                 for tsq in tsqs {
                     debug!("Attached time series query at context: {:?}", context);

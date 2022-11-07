@@ -1,9 +1,13 @@
+use crate::combiner::solution_mapping::SolutionMappings;
+use crate::combiner::Combiner;
 use crate::constants::GROUPING_COL;
+use crate::pushdown_setting::all_pushdowns;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_database::TimeSeriesQueryable;
 use crate::timeseries_query::{
     BasicTimeSeriesQuery, GroupedTimeSeriesQuery, Synchronizer, TimeSeriesQuery,
 };
+use async_recursion::async_recursion;
 use async_trait::async_trait;
 use polars::frame::DataFrame;
 use polars::prelude::{col, concat, lit, IntoLazy};
@@ -11,10 +15,6 @@ use polars_core::prelude::JoinType;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
-use crate::combiner::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
-use crate::pushdown_setting::{all_pushdowns};
-use async_recursion::async_recursion;
 
 pub struct InMemoryTimeseriesDatabase {
     pub frames: HashMap<String, DataFrame>,
@@ -66,8 +66,18 @@ impl InMemoryTimeseriesDatabase {
                     .map(|x| x.to_string())
                     .collect();
                 let solution_mappings = SolutionMappings::new(df.lazy(), columns, HashMap::new());
-                let mut combiner = Combiner::new("".to_string(), all_pushdowns(), Box::new(InMemoryTimeseriesDatabase{ frames: Default::default() }), vec![], Default::default());
-                let mut out_lf = combiner.lazy_expression(e, solution_mappings, None, None, &Context::new()).await?;
+                let mut combiner = Combiner::new(
+                    "".to_string(),
+                    all_pushdowns(),
+                    Box::new(InMemoryTimeseriesDatabase {
+                        frames: Default::default(),
+                    }),
+                    vec![],
+                    Default::default(),
+                );
+                let mut out_lf = combiner
+                    .lazy_expression(e, solution_mappings, None, None, &tmp_context)
+                    .await?;
                 out_lf.mappings = out_lf.mappings.rename([tmp_context.as_str()], [v.as_str()]);
                 df = out_lf.mappings.collect().unwrap();
                 Ok(df)
@@ -122,9 +132,20 @@ impl InMemoryTimeseriesDatabase {
             .collect();
         let tmp_context = Context::from_path(vec![PathEntry::Coalesce(12)]);
         let mut solution_mappings = SolutionMappings::new(df.lazy(), columns, HashMap::new());
-        let mut combiner = Combiner::new("".to_string(), all_pushdowns(), Box::new(InMemoryTimeseriesDatabase{ frames: Default::default() }), vec![], Default::default());
-        solution_mappings = combiner.lazy_expression(filter, solution_mappings,  None, None, &tmp_context).await?;
-        solution_mappings.mappings = solution_mappings.mappings
+        let mut combiner = Combiner::new(
+            "".to_string(),
+            all_pushdowns(),
+            Box::new(InMemoryTimeseriesDatabase {
+                frames: Default::default(),
+            }),
+            vec![],
+            Default::default(),
+        );
+        solution_mappings = combiner
+            .lazy_expression(filter, solution_mappings, None, None, &tmp_context)
+            .await?;
+        solution_mappings.mappings = solution_mappings
+            .mappings
             .filter(col(tmp_context.as_str()))
             .drop_columns([tmp_context.as_str()]);
         Ok(solution_mappings.mappings.collect().unwrap())
@@ -144,19 +165,28 @@ impl InMemoryTimeseriesDatabase {
 
         let mut aggregation_exprs = vec![];
         let mut aggregate_inner_contexts = vec![];
-        let mut combiner = Combiner::new("".to_string(), all_pushdowns(), Box::new(InMemoryTimeseriesDatabase{ frames: Default::default() }), vec![], Default::default());
+        let mut combiner = Combiner::new(
+            "".to_string(),
+            all_pushdowns(),
+            Box::new(InMemoryTimeseriesDatabase {
+                frames: Default::default(),
+            }),
+            vec![],
+            Default::default(),
+        );
         let mut solution_mappings = SolutionMappings::new(out_lf, columns, HashMap::new());
         for i in 0..grouped.aggregations.len() {
             let (v, agg) = grouped.aggregations.get(i).unwrap();
-            let (new_solution_mappings, agg_expr, used_context) =
-                combiner.sparql_aggregate_expression_as_lazy_column_and_expression(
+            let (new_solution_mappings, agg_expr, used_context) = combiner
+                .sparql_aggregate_expression_as_lazy_column_and_expression(
                     v,
                     agg,
                     solution_mappings,
                     &grouped
                         .context
                         .extension_with(PathEntry::GroupAggregation(i as u16)),
-                ).await?;
+                )
+                .await?;
             solution_mappings = new_solution_mappings;
             aggregation_exprs.push(agg_expr);
             if let Some(inner_context) = used_context {
@@ -164,9 +194,7 @@ impl InMemoryTimeseriesDatabase {
             }
         }
         let mut groupby = vec![col(grouped.tsq.get_groupby_column().unwrap())];
-        let tsfuncs = grouped
-            .tsq
-            .get_timeseries_functions(&grouped.context);
+        let tsfuncs = grouped.tsq.get_timeseries_functions(&grouped.context);
         for b in &grouped.by {
             for (v, _) in &tsfuncs {
                 if b == *v {

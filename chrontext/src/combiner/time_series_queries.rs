@@ -68,8 +68,6 @@ impl Combiner {
 
         let ts_lf = ts_df.lazy();
 
-        println!("Dropcols {:?}", drop_cols);
-
         solution_mappings.mappings = solution_mappings
             .mappings
             .join(ts_lf, on_cols.as_slice(), on_cols.as_slice(), JoinType::Inner)

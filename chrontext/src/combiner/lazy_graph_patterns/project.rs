@@ -9,6 +9,7 @@ use crate::combiner::CombinerError;
 use crate::combiner::lazy_graph_patterns::SolutionMappings;
 use crate::timeseries_query::TimeSeriesQuery;
 use async_recursion::async_recursion;
+use log::warn;
 
 impl Combiner {
     #[async_recursion]
@@ -33,7 +34,7 @@ impl Combiner {
         let mut new_datatypes = HashMap::new();
         for v in variables {
             if !datatypes.contains_key(v) {
-                print!("Datatypes does not contain {}", v);
+                warn!("Datatypes does not contain {}", v);
             } else {
                 new_datatypes.insert(v.clone(), datatypes.remove(v).unwrap());
             }

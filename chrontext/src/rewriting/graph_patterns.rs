@@ -103,7 +103,6 @@ impl StaticQueryRewriter {
         graph_pattern: &GraphPattern,
         context: &Context,
     ) -> GPReturn {
-        println!("GP: {:?} ctx: {:?}", graph_pattern, context);
         match graph_pattern {
             GraphPattern::Bgp { patterns } => self.rewrite_bgp(patterns, context),
             GraphPattern::Path {

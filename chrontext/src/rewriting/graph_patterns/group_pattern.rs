@@ -16,7 +16,6 @@ impl StaticQueryRewriter {
         let inner_context = context.extension_with(PathEntry::GroupInner);
 
         let mut graph_pattern_rewrite = self.rewrite_graph_pattern(graph_pattern, &inner_context);
-        println!("Groupby inner rewrite: {:?}", graph_pattern_rewrite);
         if !graph_pattern_rewrite.is_subquery {
             if !graph_pattern_rewrite.rewritten {
                 let variables_rewritten: Vec<Option<Variable>> = variables
