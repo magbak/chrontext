@@ -1,14 +1,14 @@
-use std::collections::{HashMap, HashSet};
-use oxrdf::Term;
-use oxrdf::vocab::xsd;
 use super::Combiner;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
+use crate::query_context::Context;
 use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
+use oxrdf::vocab::xsd;
+use oxrdf::Term;
 use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::prelude::JoinType;
 use sparesults::QuerySolution;
-use crate::combiner::solution_mapping::SolutionMappings;
-use crate::query_context::Context;
+use std::collections::{HashMap, HashSet};
 
 impl Combiner {
     pub async fn execute_attach_time_series_query(
@@ -21,32 +21,52 @@ impl Combiner {
             .execute(tsq)
             .await
             .map_err(|x| CombinerError::TimeSeriesQueryError(x))?;
-        tsq.validate(&ts_df).map_err(|x|CombinerError::TimeSeriesValidationError(x))?;
+        tsq.validate(&ts_df)
+            .map_err(|x| CombinerError::TimeSeriesValidationError(x))?;
         let datatypes = tsq.get_datatype_map();
-        for (k,v) in datatypes {
-            solution_mappings.datatypes.insert(k,v);
+        for (k, v) in datatypes {
+            solution_mappings.datatypes.insert(k, v);
         }
 
         let ts_lf = ts_df.lazy();
         let on: Vec<Expr>;
+        let mut drop_cols: Vec<String>;
         if let Some(colname) = tsq.get_groupby_column() {
-            on = vec![col(colname)]
+            on = vec![col(colname)];
+            drop_cols = vec![colname.to_string()];
         } else {
             on = tsq
                 .get_identifier_variables()
                 .iter()
                 .map(|x| col(x.as_str()))
                 .collect();
-        }
 
-        solution_mappings.mappings =
-            solution_mappings.mappings
-                .join(ts_lf, on.as_slice(), on.as_slice(), JoinType::Inner);
+            drop_cols = tsq
+                .get_identifier_variables()
+                .iter()
+                .map(|x| x.as_str().to_string())
+                .collect();
+            drop_cols.extend(
+                tsq.get_datatype_variables()
+                    .iter()
+                    .map(|x| x.as_str().to_string())
+                    .collect::<Vec<String>>()
+            );
+        }
+        println!("Dropcols {:?}", drop_cols);
+
+        solution_mappings.mappings = solution_mappings
+            .mappings
+            .join(ts_lf, on.as_slice(), on.as_slice(), JoinType::Inner)
+            .drop_columns(drop_cols.as_slice());
         return Ok(solution_mappings);
     }
 }
 
-pub(crate) fn split_time_series_queries(time_series_queries: &mut Option<HashMap<Context, Vec<TimeSeriesQuery>>>, context:&Context) -> Option<HashMap<Context, Vec<TimeSeriesQuery>>> {
+pub(crate) fn split_time_series_queries(
+    time_series_queries: &mut Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
+    context: &Context,
+) -> Option<HashMap<Context, Vec<TimeSeriesQuery>>> {
     if let Some(tsqs) = time_series_queries {
         let mut split_keys = vec![];
         for k in tsqs.keys() {
@@ -57,14 +77,13 @@ pub(crate) fn split_time_series_queries(time_series_queries: &mut Option<HashMap
         let mut new_map = HashMap::new();
         for k in split_keys {
             let tsq = tsqs.remove(&k).unwrap();
-            new_map.insert(k,tsq);
+            new_map.insert(k, tsq);
         }
         Some(new_map)
     } else {
         None
     }
 }
-
 
 pub(crate) fn complete_basic_time_series_queries(
     static_query_solutions: &Vec<QuerySolution>,

@@ -58,6 +58,7 @@ impl TimeSeriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> EXPrepReturn {
+        println!("Prepare expression: {:?}, {:?}, {:?}, {:?}", expression, try_groupby_complex_query, context, self.basic_time_series_queries);
         match expression {
             Expression::NamedNode(..) => {
                 let exr = EXPrepReturn::new(HashMap::new());

@@ -11,14 +11,15 @@ impl StaticQueryRewriter {
         inner: &GraphPattern,
         context: &Context,
     ) -> GPReturn {
-        let inner_context = context.extension_with(PathEntry::FilterExpression);
+        let inner_context = context.extension_with(PathEntry::FilterInner);
+        let expression_context = context.extension_with(PathEntry::FilterExpression);
         let mut inner_rewrite =
-            self.rewrite_graph_pattern(inner, &context.extension_with(PathEntry::FilterInner));
+            self.rewrite_graph_pattern(inner, &inner_context);
         let mut expression_rewrite = self.rewrite_expression(
             expression,
             &ChangeType::Relaxed,
             &inner_rewrite.variables_in_scope,
-            &inner_context,
+            &expression_context,
         );
         if !expression_rewrite.pushups.is_empty() || inner_rewrite.is_subquery {
             let mut expression_subqueries_vec = vec![];
@@ -31,6 +32,10 @@ impl StaticQueryRewriter {
                 self.create_add_subquery(gp.clone(), ctx);
                 expression_subqueries_vec.push(ctx.clone())
             }
+            if !inner_rewrite.is_subquery {
+                self.create_add_subquery(inner_rewrite, &inner_context);
+            }
+
             let ret = GPReturn::subquery();
             return ret;
         }

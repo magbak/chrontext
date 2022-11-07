@@ -15,10 +15,10 @@ use crate::combiner::CombinerError;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::query_context::Context;
 use crate::timeseries_query::TimeSeriesQuery;
+use async_recursion::async_recursion;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
-use async_recursion::async_recursion;
 
 impl Combiner {
     #[async_recursion]
@@ -30,18 +30,26 @@ impl Combiner {
         prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
+        println!("Context: {:?}", context);
+        println!("Static query map: {:?}", static_query_map);
+        println!("Prpeared tsqs {:?}", prepared_time_series_queries);
+
         let mut updated_solution_mappings = solution_mappings;
         let mut new_prepared_time_series_queries = prepared_time_series_queries;
 
         if let Some(query) = static_query_map.remove(context) {
-            let mut new_solution_mappings =
-                self.execute_static_query(&query, updated_solution_mappings).await?;
+            let mut new_solution_mappings = self
+                .execute_static_query(&query, updated_solution_mappings)
+                .await?;
             let GPPrepReturn {
                 time_series_queries,
                 ..
-            } = self
-                .prepper
-                .prepare_graph_pattern(graph_pattern, false, &mut new_solution_mappings,  &context);
+            } = self.prepper.prepare_graph_pattern(
+                graph_pattern,
+                false,
+                &mut new_solution_mappings,
+                &context,
+            );
             updated_solution_mappings = Some(new_solution_mappings);
             new_prepared_time_series_queries = Some(time_series_queries);
         }
@@ -59,19 +67,23 @@ impl Combiner {
         }
 
         if static_query_map.is_empty()
+            && updated_solution_mappings.is_none()
             && (new_prepared_time_series_queries.is_none()
                 || (new_prepared_time_series_queries.is_some()
-                    && new_prepared_time_series_queries.as_ref().unwrap().is_empty()))
+                    && new_prepared_time_series_queries
+                        .as_ref()
+                        .unwrap()
+                        .is_empty()))
         {
             return Ok(updated_solution_mappings.unwrap());
         }
 
         match graph_pattern {
             GraphPattern::Bgp { .. } => {
-                panic!("This situation should never occur")
+                Ok(updated_solution_mappings.unwrap())
             }
             GraphPattern::Path { .. } => {
-                panic!("This situation should never occur")
+                Ok(updated_solution_mappings.unwrap())
             }
             GraphPattern::Join { left, right } => {
                 self.lazy_join(
@@ -122,8 +134,8 @@ impl Combiner {
                 )
                 .await
             }
-            GraphPattern::Graph { name: _, inner:_ } => {
-                todo!()
+            GraphPattern::Graph { name: _, inner: _ } => {
+                Ok(updated_solution_mappings.unwrap())
             }
             GraphPattern::Extend {
                 inner,
@@ -156,7 +168,7 @@ impl Combiner {
                 variables: _,
                 bindings: _,
             } => {
-                panic!("This situation should never occur")
+                Ok(updated_solution_mappings.unwrap())
             }
             GraphPattern::OrderBy { inner, expression } => {
                 self.lazy_order_by(
@@ -213,7 +225,7 @@ impl Combiner {
                 .await
             }
             GraphPattern::Service { .. } => {
-                panic!("Should not happen")
+                Ok(updated_solution_mappings.unwrap())
             }
         }
     }

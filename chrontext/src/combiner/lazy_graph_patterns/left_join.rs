@@ -2,15 +2,16 @@ use super::Combiner;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
-use crate::combiner::{CombinerError};
+use crate::combiner::CombinerError;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
+use async_recursion::async_recursion;
 use polars::prelude::{col, concat, Expr, IntoLazy, LiteralValue};
+use polars_core::series::Series;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
 use std::ops::Not;
-use async_recursion::async_recursion;
 
 impl Combiner {
     #[async_recursion]
@@ -53,14 +54,39 @@ impl Combiner {
                 &left_context,
             )
             .await?;
-        let mut left_df = left_solution_mappings.mappings
+        let mut left_df = left_solution_mappings
+            .mappings
             .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&left_join_distinct_column))
             .with_column(col(&left_join_distinct_column).cumsum(false).keep_name())
             .collect()
             .expect("Left join collect left problem");
+
         left_solution_mappings.mappings = left_df.clone().lazy();
         let mut left_columns = left_solution_mappings.columns.clone();
         let mut left_datatypes = left_solution_mappings.datatypes.clone();
+
+        let mut right_timeseries_identifiers = vec![];
+        let mut right_timeseries_datatypes = vec![];
+        if let Some(right_map) = &right_prepared_time_series_queries {
+            for tsqs in right_map.values() {
+                for tsq in tsqs {
+                    let idvars = tsq.get_identifier_variables();
+                    for v in idvars {
+                        right_timeseries_identifiers.push(v.as_str().to_string());
+                    }
+                    let dtvars = tsq.get_datatype_variables();
+                    for v in dtvars {
+                        right_timeseries_datatypes.push(v.as_str().to_string());
+                    }
+                }
+            }
+        }
+        left_df = left_df
+            .lazy()
+            .drop_columns(right_timeseries_datatypes.as_slice())
+            .drop_columns(right_timeseries_identifiers.as_slice())
+            .collect()
+            .unwrap();
 
         let mut right_solution_mappings = self
             .lazy_graph_pattern(
@@ -110,25 +136,17 @@ impl Combiner {
             )
             .expect("Filter problem");
 
-        for c in right_df.get_column_names_owned().iter() {
-            if !left_df.get_column_names().contains(&c.as_str()) {
-                left_df = left_df
-                    .lazy()
-                    .with_column(Expr::Literal(LiteralValue::Null).alias(c))
-                    .collect()
-                    .expect("Not ok");
-                left_df
-                    .with_column(
-                        left_df
-                            .column(c)
-                            .expect("Col c prob")
-                            .cast(right_df.column(c).unwrap().dtype())
-                            .expect("Cast error"),
-                    )
-                    .expect("TODO: panic message");
+        for s in right_df.get_column_names() {
+            if !left_df.get_column_names().contains(&s) {
+                let left_col =
+                    Series::full_null(s, left_df.height(), right_df.column(s).unwrap().dtype());
+                left_df.with_column(left_col).unwrap();
             }
         }
 
+        left_df = left_df
+            .select(right_df.get_column_names().as_slice())
+            .unwrap();
         let mut output_lf =
             concat(vec![left_df.lazy(), right_df.lazy()], true, true).expect("Concat error");
         output_lf = output_lf.drop_columns(&[&left_join_distinct_column]);

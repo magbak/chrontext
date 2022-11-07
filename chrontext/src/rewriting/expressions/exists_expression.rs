@@ -10,9 +10,10 @@ impl StaticQueryRewriter {
         wrapped: &GraphPattern,
         context: &Context,
     ) -> ExReturn {
+        let exists_context = context.extension_with(PathEntry::Exists);
         let mut wrapped_rewrite = self.rewrite_graph_pattern(
             wrapped,
-            &context.extension_with(PathEntry::Exists),
+            &exists_context,
         );
         let mut exr = ExReturn::new();
         if wrapped_rewrite.graph_pattern.is_some() {
@@ -23,7 +24,7 @@ impl StaticQueryRewriter {
                 .with_change_type(ChangeType::NoChange);
                 return exr;
             } else {
-                exr.with_pushup_and_context(wrapped_rewrite, context.clone());
+                exr.with_pushup_and_context(wrapped_rewrite, exists_context);
             }
         }
         exr

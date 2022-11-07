@@ -235,6 +235,35 @@ impl TimeSeriesQuery {
             TimeSeriesQuery::ExpressionAs(t, ..) => t.get_identifier_variables(),
         }
     }
+    
+    pub(crate) fn get_datatype_variables(&self) -> Vec<&Variable> {
+        match self {
+            TimeSeriesQuery::Basic(b) => {
+                if let Some(dt_var) = &b.datatype_variable {
+                    vec![dt_var]
+                } else {
+                    vec![]
+                }
+            }
+            TimeSeriesQuery::Filtered(inner, _) => inner.get_datatype_variables(),
+            TimeSeriesQuery::InnerSynchronized(inners, _) => {
+                let mut vs = vec![];
+                for inner in inners {
+                    vs.extend(inner.get_datatype_variables())
+                }
+                vs
+            }
+            TimeSeriesQuery::Grouped(grouped) => grouped.tsq.get_datatype_variables(),
+            TimeSeriesQuery::GroupedBasic(b, ..) => {
+                if let Some(dt_var) = &b.datatype_variable {
+                    vec![dt_var]
+                } else {
+                    vec![]
+                }
+            }
+            TimeSeriesQuery::ExpressionAs(t, ..) => t.get_datatype_variables(),
+        }
+    }
 
     pub(crate) fn has_equivalent_timestamp_variable(
         &self,

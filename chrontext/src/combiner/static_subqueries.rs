@@ -29,11 +29,19 @@ impl Combiner {
             .iter()
             .map(|x| x.to_string())
             .collect();
+        if columns.is_empty() {
+            return Ok(solution_mappings.unwrap())
+        }
         let mut lf = df.lazy();
         if let Some(SolutionMappings { mappings: input_lf, columns: input_columns, datatypes: input_datatypes }) = solution_mappings {
             let on:Vec<&String> = columns.intersection(&input_columns).collect();
             let on_cols:Vec<Expr> = on.iter().map(|x|col(x)).collect();
-            lf = lf.join(input_lf, on_cols.as_slice(), on_cols.as_slice(), JoinType::Inner);
+            let join_type = if on_cols.is_empty() {
+                JoinType::Cross
+            } else {
+                JoinType::Inner
+            };
+            lf = lf.join(input_lf, on_cols.as_slice(), on_cols.as_slice(), join_type);
 
             columns.extend(input_columns);
             datatypes.extend(input_datatypes);

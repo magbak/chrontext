@@ -19,7 +19,6 @@ use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::preparing::graph_patterns::GPPrepReturn;
 
 #[derive(Debug)]
 pub enum CombinerError {
