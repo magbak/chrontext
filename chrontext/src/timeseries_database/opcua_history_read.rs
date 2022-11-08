@@ -30,6 +30,7 @@ const OPCUA_AGG_FUNC_MINIMUM: u32 = 2346;
 const OPCUA_AGG_FUNC_MAXIMUM: u32 = 2347;
 const OPCUA_AGG_FUNC_TOTAL: u32 = 2344;
 
+#[allow(dead_code)]
 pub struct OPCUAHistoryRead {
     client: Client,
     session: Arc<RwLock<Session>>,

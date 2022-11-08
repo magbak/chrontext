@@ -1,6 +1,6 @@
 [package]
 name = "py_chrontext"
-version = "0.2.00"
+version = "0.2.1"
 edition = "2021"
 
 [workspace]
