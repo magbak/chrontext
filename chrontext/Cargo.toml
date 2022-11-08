@@ -1,6 +1,6 @@
 [package]
 name = "chrontext"
-version = "0.1.56"
+version = "0.2.00"
 edition = "2021"
 
 [dependencies]
