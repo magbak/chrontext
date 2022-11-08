@@ -10,8 +10,11 @@ use std::ops::{Div, Mul};
 use std::sync::{Arc, RwLock};
 
 const OPCUA_AGG_FUNC_AVERAGE: u32 = 2342;
+#[allow(dead_code)]
 const OPCUA_AGG_FUNC_COUNT: u32 = 2352;
+#[allow(dead_code)]
 const OPCUA_AGG_FUNC_MINIMUM: u32 = 2346;
+#[allow(dead_code)]
 const OPCUA_AGG_FUNC_MAXIMUM: u32 = 2347;
 const OPCUA_AGG_FUNC_TOTAL: u32 = 2344;
 
@@ -20,6 +23,7 @@ pub struct OPCUADataProvider {
 }
 
 impl OPCUADataProvider {
+    #[allow(dead_code)]
     pub fn new(frames: HashMap<String, DataFrame>) -> OPCUADataProvider {
         OPCUADataProvider { frames }
     }
