@@ -7,13 +7,14 @@ use chrontext::static_sparql::execute_sparql_query;
 use chrontext::timeseries_database::simple_in_memory_timeseries::InMemoryTimeseriesDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{CsvReader, SerReader};
+use polars::prelude::{CsvReader, CsvWriter, SerReader};
 use rstest::*;
 use serial_test::serial;
 use sparesults::QuerySolution;
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
+use polars::io::SerWriter;
 
 
 use crate::common::{
@@ -375,6 +376,80 @@ async fn test_pushdown_group_by_second_having_hybrid_query(
     // let writer = CsvWriter::new(file);
     // writer.finish(&mut df).expect("writeok");
     //println!("{}", df);
+}
+
+#[rstest]
+#[tokio::test]
+#[serial]
+async fn test_union_of_two_groupby_queries(
+    #[future] with_testdata: (),
+    mut engine: Engine,
+    testdata_path: PathBuf,
+    use_logger: (),
+) {
+    let _ = use_logger;
+    let _ = with_testdata.await;
+    let query = r#"
+PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+PREFIX chrontext:<https://github.com/magbak/chrontext#>
+PREFIX types:<http://example.org/types#>
+SELECT ?w ?second_5 ?kind ?sum_v WHERE {
+  {
+    SELECT ?w ?kind ?second_5 (SUM(?v) AS ?sum_v) WHERE {
+      ?w types:hasSensor ?s.
+      ?s chrontext:hasTimeseries ?ts.
+      ?ts chrontext:hasDataPoint ?dp.
+      ?dp chrontext:hasTimestamp ?t;
+        chrontext:hasValue ?v.
+      BIND("under_500" AS ?kind)
+      BIND(xsd:integer(FLOOR((SECONDS(?t)) / "5.0"^^xsd:decimal)) AS ?second_5)
+      BIND(MINUTES(?t) AS ?minute)
+      FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+    }
+    GROUP BY ?w ?kind ?minute ?second_5
+    HAVING ((SUM(?v)) < 500 )
+  }
+  UNION
+  {
+    SELECT ?w ?kind ?second_5 (SUM(?v) AS ?sum_v) WHERE {
+      ?w types:hasSensor ?s.
+      ?s chrontext:hasTimeseries ?ts.
+      ?ts chrontext:hasDataPoint ?dp.
+      ?dp chrontext:hasTimestamp ?t;
+        chrontext:hasValue ?v.
+      BIND("over_1000" AS ?kind)
+      BIND(xsd:integer(FLOOR((SECONDS(?t)) / "5.0"^^xsd:decimal)) AS ?second_5)
+      BIND(MINUTES(?t) AS ?minute)
+      FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+    }
+    GROUP BY ?w ?kind ?minute ?second_5
+    HAVING ((SUM(?v)) > 1000 )
+  }
+}
+    "#;
+    let mut df = engine
+        .execute_hybrid_query(query)
+        .await
+        .expect("Hybrid error")
+        .sort(&["w", "kind", "second_5"], vec![false])
+        .expect("Sort error");
+    let mut file_path = testdata_path.clone();
+    file_path.push("expected_union_of_two_groupby.csv");
+
+    let file = File::open(file_path.as_path()).expect("Read file problem");
+    let expected_df = CsvReader::new(file)
+        .infer_schema(None)
+        .has_header(true)
+        .with_parse_dates(true)
+        .finish()
+        .expect("DF read error")
+        .sort(&["w", "kind", "second_5"], vec![false])
+        .expect("Sort error");
+    assert_eq!(expected_df, df);
+    // let file = File::create(file_path.as_path()).expect("could not open file");
+    // let mut writer = CsvWriter::new(file);
+    // writer.finish(&mut df).expect("writeok");
+    // println!("{}", df);
 }
 
 #[rstest]

@@ -8,6 +8,7 @@ use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
 use std::collections::HashMap;
 use async_recursion::async_recursion;
+use log::debug;
 
 impl Combiner {
     #[async_recursion]
@@ -20,6 +21,7 @@ impl Combiner {
         prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
+        debug!("Processing order by graph pattern");
         let mut output_solution_mappings = self
             .lazy_graph_pattern(
                 inner,

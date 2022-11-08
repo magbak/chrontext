@@ -9,7 +9,7 @@ use crate::combiner::CombinerError;
 use crate::combiner::lazy_graph_patterns::SolutionMappings;
 use crate::timeseries_query::TimeSeriesQuery;
 use async_recursion::async_recursion;
-use log::warn;
+use log::{debug, warn};
 
 impl Combiner {
     #[async_recursion]
@@ -22,6 +22,7 @@ impl Combiner {
         prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
+        debug!("Processing project graph pattern");
         let SolutionMappings{ mut mappings, mut datatypes ,.. } = self.lazy_graph_pattern(
             inner,
             solution_mappings,

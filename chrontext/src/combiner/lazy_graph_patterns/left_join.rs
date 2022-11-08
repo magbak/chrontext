@@ -12,6 +12,7 @@ use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
 use std::ops::Not;
+use log::debug;
 
 impl Combiner {
     #[async_recursion]
@@ -25,6 +26,7 @@ impl Combiner {
         mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
+        debug!("Processing left join graph pattern");
         let left_join_distinct_column = context.as_str();
         let left_context = context.extension_with(PathEntry::LeftJoinLeftSide);
         let right_context = context.extension_with(PathEntry::LeftJoinRightSide);

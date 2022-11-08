@@ -9,6 +9,7 @@ use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::prelude::JoinType;
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
+use log::debug;
 
 impl Combiner {
     pub async fn execute_attach_time_series_query(
@@ -16,11 +17,13 @@ impl Combiner {
         tsq: &TimeSeriesQuery,
         mut solution_mappings: SolutionMappings,
     ) -> Result<SolutionMappings, CombinerError> {
+        debug!("Executing time series query: {:?}", tsq);
         let ts_df = self
             .time_series_database
             .execute(tsq)
             .await
             .map_err(|x| CombinerError::TimeSeriesQueryError(x))?;
+        debug!("Time series query results: \n{}", ts_df);
         tsq.validate(&ts_df)
             .map_err(|x| CombinerError::TimeSeriesValidationError(x))?;
 

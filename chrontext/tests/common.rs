@@ -15,7 +15,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 use tokio::time::sleep;
 
-const OXIGRAPH_SERVER_IMAGE: &str = "oxigraph/oxigraph:v0.3.2";
+const OXIGRAPH_SERVER_IMAGE: &str = "oxigraph/oxigraph:v0.3.8";
 const UPDATE_ENDPOINT: &str = "http://localhost:7878/update";
 
 pub const QUERY_ENDPOINT: &str = "http://localhost:7878/query";

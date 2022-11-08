@@ -25,6 +25,7 @@ impl TimeSeriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
+        debug!("Prepare group by graph pattern at context {}", context.as_str());
         if try_groupby_complex_query {
             return GPPrepReturn::fail_groupby_complex_query();
         }
@@ -68,12 +69,12 @@ impl TimeSeriesQueryPrepper {
                 }
             }
         }
-
+        debug!("Group by pushdown failed at context {:?}", context);
         self.prepare_graph_pattern(
             graph_pattern,
             false,
             solution_mappings,
-            &context.extension_with(PathEntry::GroupInner),
+            &inner_context,
         )
     }
 

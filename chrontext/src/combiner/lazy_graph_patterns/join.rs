@@ -9,6 +9,7 @@ use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use async_recursion::async_recursion;
+use log::debug;
 
 impl Combiner {
     #[async_recursion]
@@ -21,6 +22,7 @@ impl Combiner {
         mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result< SolutionMappings, CombinerError> {
+        debug!("Processing join graph pattern");
         let left_context = context.extension_with(PathEntry::JoinLeftSide);
         let right_context = context.extension_with(PathEntry::JoinRightSide);
         let left_prepared_time_series_queries = split_time_series_queries(&mut prepared_time_series_queries, &left_context);

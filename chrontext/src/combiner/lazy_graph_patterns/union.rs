@@ -10,6 +10,7 @@ use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
 use async_recursion::async_recursion;
+use log::debug;
 
 impl Combiner {
     #[async_recursion]
@@ -22,6 +23,7 @@ impl Combiner {
         mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
+        debug!("Processing union graph pattern");
         let left_context = context.extension_with(PathEntry::UnionLeftSide);
         let right_context = context.extension_with(PathEntry::UnionRightSide);
         let left_prepared_time_series_queries =

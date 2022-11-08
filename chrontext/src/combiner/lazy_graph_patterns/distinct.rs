@@ -8,6 +8,7 @@ use crate::combiner::CombinerError;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::timeseries_query::TimeSeriesQuery;
 use async_recursion::async_recursion;
+use log::debug;
 
 impl Combiner {
     #[async_recursion]
@@ -19,6 +20,7 @@ impl Combiner {
         prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
+        debug!("Processing distinct graph pattern");
         let SolutionMappings { mappings, columns, datatypes } = self.lazy_graph_pattern(
             inner,
             solution_mappings,

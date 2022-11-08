@@ -18,6 +18,7 @@ mod union_pattern;
 mod values_pattern;
 
 use std::collections::HashMap;
+use log::debug;
 use super::TimeSeriesQueryPrepper;
 use crate::query_context::Context;
 use crate::timeseries_query::TimeSeriesQuery;
@@ -64,6 +65,7 @@ impl TimeSeriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
+        debug!("Preparing TSQ for graph pattern at context {}", context.as_str());
         match graph_pattern {
             GraphPattern::Bgp { patterns: _ } => {
                 self.prepare_bgp(try_groupby_complex_query , context)

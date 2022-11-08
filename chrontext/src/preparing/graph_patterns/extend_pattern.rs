@@ -18,11 +18,12 @@ impl TimeSeriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
+        let inner_context = context.extension_with(PathEntry::ExtendInner);
         let mut inner_prepare = self.prepare_graph_pattern(
             inner,
             try_groupby_complex_query,
             solution_mappings,
-            &context.extension_with(PathEntry::ExtendInner),
+            &inner_context,
         );
         if try_groupby_complex_query {
             let mut expression_vars = HashSet::new();

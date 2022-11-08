@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use log::debug;
 use super::Combiner;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
@@ -22,6 +23,7 @@ impl Combiner {
         mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
+        debug!("Processing group graph pattern");
         let inner_context = context.extension_with(PathEntry::GroupInner);
         let inner_prepared_time_series_queries = split_time_series_queries(&mut prepared_time_series_queries, &inner_context);
         let inner_static_query_map = split_static_queries(&mut static_query_map, &inner_context);
