@@ -32,7 +32,7 @@ import requests
 
 PATH_HERE = pathlib.Path(__file__).parent
 print(PATH_HERE)
-OXIGRAPH_SERVER_IMAGE = "oxigraph/oxigraph:v0.3.2"
+OXIGRAPH_SERVER_IMAGE = "oxigraph/oxigraph:v0.3.8"
 DREMIO_DOCKER_PATH = PATH_HERE / "dremio_docker"
 DREMIO_CONTAINER_NAME = "my-dremio-server"
 DREMIO_ORIGIN = "http://127.0.0.1:9047"

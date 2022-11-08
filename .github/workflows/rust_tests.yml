@@ -23,7 +23,7 @@ jobs:
         rustup toolchain install nightly-2022-09-13
         rustup default nightly-2022-09-13
 
-        docker pull oxigraph/oxigraph:v0.3.2
+        docker pull oxigraph/oxigraph:v0.3.8
         docker pull dremio/dremio-oss:22.0.0
 
     - uses: actions/cache@v2
