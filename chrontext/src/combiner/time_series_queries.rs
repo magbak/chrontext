@@ -3,13 +3,14 @@ use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
 use crate::query_context::Context;
 use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
+use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
 use polars::prelude::{col, Expr, IntoLazy};
-use polars_core::prelude::JoinType;
+use polars_core::prelude::{DataType, JoinType};
+use polars_core::toggle_string_cache;
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
-use log::debug;
 
 impl Combiner {
     pub async fn execute_attach_time_series_query(
@@ -29,15 +30,19 @@ impl Combiner {
 
         let mut on: Vec<String>;
         let mut drop_cols: Vec<String>;
+        let to_cat_col: Option<String>;
         if let Some(colname) = tsq.get_groupby_column() {
             on = vec![colname.to_string()];
             drop_cols = vec![colname.to_string()];
+            to_cat_col = None;
         } else {
-            on = tsq
-                .get_identifier_variables()
+            let idvars: Vec<String> = tsq.get_identifier_variables()
                 .iter()
                 .map(|x| x.as_str().to_string())
                 .collect();
+            assert_eq!(idvars.len(), 1);
+            to_cat_col = Some(idvars.get(0).unwrap().clone());
+            on = idvars;
 
             drop_cols = tsq
                 .get_identifier_variables()
@@ -48,7 +53,7 @@ impl Combiner {
                 tsq.get_datatype_variables()
                     .iter()
                     .map(|x| x.as_str().to_string())
-                    .collect::<Vec<String>>()
+                    .collect::<Vec<String>>(),
             );
         }
         let datatypes = tsq.get_datatype_map();
@@ -62,18 +67,39 @@ impl Combiner {
                 on.push(c.to_string())
             }
         }
-        let on_cols:Vec<Expr> = on.into_iter().map(|x|col(&x)).collect();
+        let on_cols: Vec<Expr> = on.into_iter().map(|x| col(&x)).collect();
         for c in ts_df.get_column_names() {
             if !drop_cols.contains(&c.to_string()) {
                 solution_mappings.columns.insert(c.to_string());
             }
         }
 
-        let ts_lf = ts_df.lazy();
+        toggle_string_cache(true);
+        solution_mappings.mappings = solution_mappings.mappings.collect().unwrap().lazy();
+        let mut ts_lf = ts_df.lazy();
+        if let Some(cat_col) = &to_cat_col {
+            ts_lf = ts_lf.with_column(col(cat_col).cast(DataType::Categorical(None)));
+            solution_mappings.mappings = solution_mappings
+                .mappings
+                .with_column(col(cat_col).cast(DataType::Categorical(None)));
+        }
+
+        let on_reverse_false = vec![false].repeat(on_cols.len());
+        ts_lf = ts_lf
+            .sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true);
+        solution_mappings.mappings =
+            solution_mappings
+                .mappings
+                .sort_by_exprs(on_cols.as_slice(), on_reverse_false, true);
 
         solution_mappings.mappings = solution_mappings
             .mappings
-            .join(ts_lf, on_cols.as_slice(), on_cols.as_slice(), JoinType::Inner)
+            .join(
+                ts_lf,
+                on_cols.as_slice(),
+                on_cols.as_slice(),
+                JoinType::Inner,
+            )
             .drop_columns(drop_cols.as_slice());
         return Ok(solution_mappings);
     }

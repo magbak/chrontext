@@ -7,15 +7,13 @@ use chrontext::static_sparql::execute_sparql_query;
 use chrontext::timeseries_database::simple_in_memory_timeseries::InMemoryTimeseriesDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{CsvReader, CsvWriter, SerReader};
+use polars::prelude::{CsvReader, SerReader};
 use rstest::*;
 use serial_test::serial;
 use sparesults::QuerySolution;
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
-use polars::io::SerWriter;
-
 
 use crate::common::{
     add_sparql_testdata, compare_all_solutions, start_sparql_container, QUERY_ENDPOINT,
@@ -427,7 +425,7 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
   }
 }
     "#;
-    let mut df = engine
+    let df = engine
         .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
