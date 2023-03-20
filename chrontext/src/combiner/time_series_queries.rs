@@ -101,6 +101,10 @@ impl Combiner {
                 JoinType::Inner,
             )
             .drop_columns(drop_cols.as_slice());
+        for c in &drop_cols {
+            solution_mappings.datatypes.remove(c);
+            solution_mappings.columns.remove(c);
+        }
         return Ok(solution_mappings);
     }
 }

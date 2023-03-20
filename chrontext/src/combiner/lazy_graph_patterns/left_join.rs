@@ -1,18 +1,20 @@
+//Uses code from https://github.com/magbak/maplib/blob/main/triplestore/src/sparql/lazy_graph_patterns/left_join.rs
+
 use super::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
+use crate::combiner::solution_mapping::{is_string_col, SolutionMappings};
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
 use async_recursion::async_recursion;
-use polars::prelude::{col, concat, Expr, IntoLazy, LiteralValue};
-use polars_core::series::Series;
+use log::debug;
+use polars::prelude::{col, Expr, IntoLazy};
+use polars_core::datatypes::DataType;
+use polars_core::prelude::JoinType;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
-use std::ops::Not;
-use log::debug;
 
 impl Combiner {
     #[async_recursion]
@@ -27,7 +29,6 @@ impl Combiner {
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Processing left join graph pattern");
-        let left_join_distinct_column = context.as_str();
         let left_context = context.extension_with(PathEntry::LeftJoinLeftSide);
         let right_context = context.extension_with(PathEntry::LeftJoinRightSide);
         let expression_context = context.extension_with(PathEntry::LeftJoinExpression);
@@ -56,44 +57,21 @@ impl Combiner {
                 &left_context,
             )
             .await?;
-        let mut left_df = left_solution_mappings
+
+        left_solution_mappings.mappings = left_solution_mappings
             .mappings
-            .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&left_join_distinct_column))
-            .with_column(col(&left_join_distinct_column).cumsum(false).keep_name())
             .collect()
-            .expect("Left join collect left problem");
+            .unwrap()
+            .lazy();
 
-        left_solution_mappings.mappings = left_df.clone().lazy();
-        let mut left_columns = left_solution_mappings.columns.clone();
-        let mut left_datatypes = left_solution_mappings.datatypes.clone();
-
-        // let mut right_timeseries_identifiers = vec![];
-        // let mut right_timeseries_datatypes = vec![];
-        // if let Some(right_map) = &right_prepared_time_series_queries {
-        //     for tsqs in right_map.values() {
-        //         for tsq in tsqs {
-        //             let idvars = tsq.get_identifier_variables();
-        //             for v in idvars {
-        //                 right_timeseries_identifiers.push(v.as_str().to_string());
-        //             }
-        //             let dtvars = tsq.get_datatype_variables();
-        //             for v in dtvars {
-        //                 right_timeseries_datatypes.push(v.as_str().to_string());
-        //             }
-        //         }
-        //     }
-        // }
-        // left_df = left_df
-        //     .lazy()
-        //     .drop_columns(right_timeseries_datatypes.as_slice())
-        //     .drop_columns(right_timeseries_identifiers.as_slice())
-        //     .collect()
-        //     .unwrap();
+        println!("{:?}", &left_solution_mappings.mappings.clone().collect().unwrap());
+        println!("{:?}", &left_solution_mappings.columns);
+        println!("{:?}", &left_solution_mappings.datatypes);
 
         let mut right_solution_mappings = self
             .lazy_graph_pattern(
                 right,
-                Some(left_solution_mappings),
+                Some(left_solution_mappings.clone()),
                 right_static_query_map,
                 right_prepared_time_series_queries,
                 &right_context,
@@ -116,55 +94,65 @@ impl Combiner {
                 .drop_columns([&expression_context.as_str()]);
         }
         let SolutionMappings {
-            mappings: right_mappings,
-            columns: right_columns,
+            mappings: mut right_mappings,
+            columns: mut right_columns,
             datatypes: mut right_datatypes,
         } = right_solution_mappings;
 
-        let right_df = right_mappings.collect().expect("Collect right problem");
+        let mut join_on: Vec<&String> = left_solution_mappings
+            .columns
+            .intersection(&right_columns)
+            .collect();
+        join_on.sort();
 
-        left_df = left_df
-            .filter(
-                &left_df
-                    .column(&left_join_distinct_column)
-                    .expect("Did not find left helper")
-                    .is_in(
-                        right_df
-                            .column(&left_join_distinct_column)
-                            .expect("Did not find right helper"),
-                    )
-                    .expect("Is in problem")
-                    .not(),
+        let join_on_cols: Vec<Expr> = join_on.iter().map(|x| col(x)).collect();
+
+        println!("Join on: {:?}", join_on);
+        if join_on.is_empty() {
+            left_solution_mappings.mappings = left_solution_mappings.mappings.join(
+                right_mappings,
+                join_on_cols.as_slice(),
+                join_on_cols.as_slice(),
+                JoinType::Cross,
             )
-            .expect("Filter problem");
-
-        for s in right_df.get_column_names() {
-            if !left_df.get_column_names().contains(&s) {
-                let left_col =
-                    Series::full_null(s, left_df.height(), right_df.column(s).unwrap().dtype());
-                left_df.with_column(left_col).unwrap();
+        } else {
+            for c in join_on {
+                if is_string_col(right_datatypes.get(c).unwrap()) {
+                    right_mappings =
+                        right_mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                    left_solution_mappings.mappings = left_solution_mappings
+                        .mappings
+                        .with_column(col(c).cast(DataType::Categorical(None)));
+                }
+            }
+            let all_false = [false].repeat(join_on_cols.len());
+            right_mappings =
+                right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false);
+            left_solution_mappings.mappings = left_solution_mappings.mappings.sort_by_exprs(
+                join_on_cols.as_slice(),
+                all_false.as_slice(),
+                false,
+            );
+            left_solution_mappings.mappings = left_solution_mappings.mappings.join(
+                right_mappings,
+                join_on_cols.as_slice(),
+                join_on_cols.as_slice(),
+                JoinType::Left,
+            )
+        }
+        for c in right_columns.drain() {
+            left_solution_mappings.columns.insert(c);
+        }
+        for (var, dt) in right_datatypes.drain() {
+            if let Some(dt_left) = left_solution_mappings.datatypes.get(&var) {
+                //TODO: handle compatibility
+                // if &dt != dt_left {
+                //     return Err(SparqlError::InconsistentDatatypes(var.clone(), dt_left.clone(), dt, context.clone()))
+                // }
+            } else {
+                left_solution_mappings.datatypes.insert(var, dt);
             }
         }
-
-        left_df = left_df
-            .select(right_df.get_column_names().as_slice())
-            .unwrap();
-        let mut output_lf =
-            concat(vec![left_df.lazy(), right_df.lazy()], true, true).expect("Concat error");
-        output_lf = output_lf.drop_columns(&[&left_join_distinct_column]);
-        output_lf = output_lf
-            .collect()
-            .expect("Left join collect problem")
-            .lazy();
-        for (v, nn) in right_datatypes.drain() {
-            left_datatypes.insert(v, nn);
-        }
-        left_columns.extend(right_columns);
-
-        Ok(SolutionMappings::new(
-            output_lf,
-            left_columns,
-            left_datatypes,
-        ))
+        Ok(left_solution_mappings)
     }
 }

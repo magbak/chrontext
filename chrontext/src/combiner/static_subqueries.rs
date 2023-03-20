@@ -136,7 +136,7 @@ fn constrain_query(
     let height = variable_columns.height();
     let datatypes: Vec<NamedNode> = constrain_variables.iter().map(|x| solution_mappings
             .datatypes
-            .get(x)
+            .get(x.as_str())
             .expect("Datatype did not exist").clone()).collect();
     let datatypes_nnref:Vec<NamedNodeRef> = datatypes.iter().map(|x|x.as_ref()).collect();
     let mut series_iters: Vec<SeriesIter> = variable_columns.iter().map(|x| x.iter()).collect();

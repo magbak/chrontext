@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use oxrdf::vocab::xsd;
-use oxrdf::{Literal, NamedNode, Term, Variable};
+use oxrdf::{Literal, NamedNode, Term};
 use polars::export::chrono::{DateTime, NaiveDateTime, Utc};
 use polars::prelude::{DataFrame, LiteralValue, NamedFrom, Series, TimeUnit};
 use sparesults::QuerySolution;
@@ -11,7 +11,7 @@ use std::str::FromStr;
 pub(crate) fn create_static_query_dataframe(
     static_query: &Query,
     static_query_solutions: Vec<QuerySolution>,
-) -> (DataFrame, HashMap<Variable, NamedNode>) {
+) -> (DataFrame, HashMap<String, NamedNode>) {
     let column_variables;
     if let Query::Select {
         dataset: _,
@@ -37,11 +37,12 @@ pub(crate) fn create_static_query_dataframe(
     let mut series_vec = vec![];
     let mut datatypes = HashMap::new();
     'outer: for c in &column_variables {
+        let c_str = c.as_str();
         for s in &static_query_solutions {
             if let Some(term) = s.get(c) {
                 match term {
-                    Term::NamedNode(_) => {datatypes.insert(c.clone(), xsd::ANY_URI.into_owned());}
-                    Term::Literal(l) => {datatypes.insert(c.clone(), l.datatype().into_owned());}
+                    Term::NamedNode(_) => {datatypes.insert(c_str.to_string(), xsd::ANY_URI.into_owned());}
+                    Term::Literal(l) => {datatypes.insert(c_str.to_string(), l.datatype().into_owned());}
                     _ => {panic!("Not supported")} //Blank node
                 }
                 continue 'outer

@@ -412,20 +412,20 @@ impl TimeSeriesQuery {
     }
 
 
-    pub fn get_datatype_map(&self) -> HashMap<Variable, NamedNode> {
+    pub fn get_datatype_map(&self) -> HashMap<String, NamedNode> {
         match self {
             TimeSeriesQuery::Basic(b) => {
                 let mut map = HashMap::new();
                 if let Some(tsv) = &b.timestamp_variable {
-                    map.insert(tsv.variable.as_ref().into_owned(), xsd::DATE_TIME_STAMP.into_owned());
+                    map.insert(tsv.variable.as_str().to_string(), xsd::DATE_TIME_STAMP.into_owned());
                 }
                 if let Some(v) = &b.value_variable.clone() {
-                    map.insert(v.variable.as_ref().into_owned(), b.datatype.as_ref().unwrap().clone());
+                    map.insert(v.variable.as_str().to_string(), b.datatype.as_ref().unwrap().clone());
                 }
                 map
             }
             TimeSeriesQuery::GroupedBasic(b, .. ) => {
-                HashMap::from([(b.value_variable.as_ref().unwrap().variable.clone(), b.datatype.as_ref().unwrap().clone())])
+                HashMap::from([(b.value_variable.as_ref().unwrap().variable.as_str().to_string(), b.datatype.as_ref().unwrap().clone())])
             }
             TimeSeriesQuery::Filtered(tsq, _) => tsq.get_datatype_map(),
             TimeSeriesQuery::InnerSynchronized(tsqs, _) => {
@@ -436,12 +436,14 @@ impl TimeSeriesQuery {
                 map
             }
             TimeSeriesQuery::ExpressionAs(tsq, v, e) => {
+                let v_str = v.as_str();
                 let mut map = tsq.get_datatype_map();
                 let mut used_vars = HashSet::new();
                 find_all_used_variables_in_expression(e, &mut used_vars);
                 for u in &used_vars {
-                    if map.contains_key(u) {
-                        map.insert(v.clone(), map.get(u).unwrap().clone());
+                    let u_str = u.as_str();
+                    if map.contains_key(u_str) {
+                        map.insert(v_str.to_string(), map.get(u_str).unwrap().clone());
                     } else {
                         warn!("Map does not contain datatype {:?}", u);
                     }
@@ -451,11 +453,13 @@ impl TimeSeriesQuery {
             TimeSeriesQuery::Grouped(gr ) => {
                 let mut map = gr.tsq.get_datatype_map();
                 for (v,agg) in gr.aggregations.iter().rev() {
+                    let v_str = v.as_str();
                     let mut used_vars = HashSet::new();
                     find_all_used_variables_in_aggregate_expression(&agg, &mut used_vars);
                     for av in used_vars {
+                        let av_str = av.as_str();
                         //TODO: This is not correct.
-                        map.insert(v.clone(), map.get(&av).unwrap().clone());
+                        map.insert(v_str.to_string(), map.get(av_str).unwrap().clone());
                     }
                 }
                 map

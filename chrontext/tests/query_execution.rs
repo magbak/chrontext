@@ -774,7 +774,8 @@ async fn test_optional_clause_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error");
+        .expect("Hybrid error")
+        .sort(&["w", "v", "greater"], vec![false]).unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_optional_clause_query.csv");
 
@@ -784,7 +785,8 @@ async fn test_optional_clause_query(
         .has_header(true)
         .with_parse_dates(true)
         .finish()
-        .expect("DF read error");
+        .expect("DF read error")
+        .sort(&["w", "v", "greater"], vec![false]).unwrap();
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let mut writer = CsvWriter::new(file);
@@ -995,7 +997,8 @@ async fn test_distinct_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error");
+        .expect("Hybrid error")
+        .sort(&["w", "v_with_min"], vec![false]).unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_distinct_query.csv");
 
@@ -1005,7 +1008,8 @@ async fn test_distinct_query(
         .has_header(true)
         .with_parse_dates(true)
         .finish()
-        .expect("DF read error");
+        .expect("DF read error")
+        .sort(&["w", "v_with_min"], vec![false]).unwrap();
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let writer = CsvWriter::new(file);
