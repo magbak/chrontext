@@ -203,7 +203,7 @@ fn test_option_expression_filter_projection() {
         ]))
         .unwrap();
     let static_rewrite_right = static_rewrites_map
-        .get(&Contextfix::from_path(vec![
+        .get(&Context::from_path(vec![
             PathEntry::ProjectInner,
             PathEntry::LeftJoinRightSide,
         ]))
