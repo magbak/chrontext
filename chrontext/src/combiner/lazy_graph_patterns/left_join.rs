@@ -64,10 +64,6 @@ impl Combiner {
             .unwrap()
             .lazy();
 
-        println!("{:?}", &left_solution_mappings.mappings.clone().collect().unwrap());
-        println!("{:?}", &left_solution_mappings.columns);
-        println!("{:?}", &left_solution_mappings.datatypes);
-
         let mut right_solution_mappings = self
             .lazy_graph_pattern(
                 right,
@@ -107,7 +103,6 @@ impl Combiner {
 
         let join_on_cols: Vec<Expr> = join_on.iter().map(|x| col(x)).collect();
 
-        println!("Join on: {:?}", join_on);
         if join_on.is_empty() {
             left_solution_mappings.mappings = left_solution_mappings.mappings.join(
                 right_mappings,
