@@ -24,7 +24,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
         year_col: Option<&'a str>,
         month_col: Option<&'a str>,
         day_col: Option<&'a str>,
-    ) -> SPARQLToSQLExpressionTransformer {
+    ) -> SPARQLToSQLExpressionTransformer<'a> {
         SPARQLToSQLExpressionTransformer {
             table_name,
             year_col,

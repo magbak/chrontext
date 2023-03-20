@@ -67,28 +67,28 @@ impl Combiner {
         let mut left_columns = left_solution_mappings.columns.clone();
         let mut left_datatypes = left_solution_mappings.datatypes.clone();
 
-        let mut right_timeseries_identifiers = vec![];
-        let mut right_timeseries_datatypes = vec![];
-        if let Some(right_map) = &right_prepared_time_series_queries {
-            for tsqs in right_map.values() {
-                for tsq in tsqs {
-                    let idvars = tsq.get_identifier_variables();
-                    for v in idvars {
-                        right_timeseries_identifiers.push(v.as_str().to_string());
-                    }
-                    let dtvars = tsq.get_datatype_variables();
-                    for v in dtvars {
-                        right_timeseries_datatypes.push(v.as_str().to_string());
-                    }
-                }
-            }
-        }
-        left_df = left_df
-            .lazy()
-            .drop_columns(right_timeseries_datatypes.as_slice())
-            .drop_columns(right_timeseries_identifiers.as_slice())
-            .collect()
-            .unwrap();
+        // let mut right_timeseries_identifiers = vec![];
+        // let mut right_timeseries_datatypes = vec![];
+        // if let Some(right_map) = &right_prepared_time_series_queries {
+        //     for tsqs in right_map.values() {
+        //         for tsq in tsqs {
+        //             let idvars = tsq.get_identifier_variables();
+        //             for v in idvars {
+        //                 right_timeseries_identifiers.push(v.as_str().to_string());
+        //             }
+        //             let dtvars = tsq.get_datatype_variables();
+        //             for v in dtvars {
+        //                 right_timeseries_datatypes.push(v.as_str().to_string());
+        //             }
+        //         }
+        //     }
+        // }
+        // left_df = left_df
+        //     .lazy()
+        //     .drop_columns(right_timeseries_datatypes.as_slice())
+        //     .drop_columns(right_timeseries_identifiers.as_slice())
+        //     .collect()
+        //     .unwrap();
 
         let mut right_solution_mappings = self
             .lazy_graph_pattern(
