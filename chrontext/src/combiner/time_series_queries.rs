@@ -8,7 +8,7 @@ use oxrdf::vocab::xsd;
 use oxrdf::Term;
 use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::prelude::{DataType, JoinType};
-use polars_core::toggle_string_cache;
+use polars::enable_string_cache;
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
 
@@ -74,7 +74,7 @@ impl Combiner {
             }
         }
 
-        toggle_string_cache(true);
+        enable_string_cache(true);
         solution_mappings.mappings = solution_mappings.mappings.collect().unwrap().lazy();
         let mut ts_lf = ts_df.lazy();
         if let Some(cat_col) = &to_cat_col {

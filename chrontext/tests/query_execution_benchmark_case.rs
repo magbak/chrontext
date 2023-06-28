@@ -62,7 +62,7 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> InMemoryTimeseriesDatab
         let df = CsvReader::new(file)
             .infer_schema(None)
             .has_header(true)
-            .with_parse_dates(true)
+            .with_try_parse_dates(true)
             .finish()
             .expect("DF read error");
         frames.insert(t.to_string(), df);
@@ -147,7 +147,7 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     let mut expected_df = CsvReader::new(file)
         .infer_schema(None)
         .has_header(true)
-        .with_parse_dates(true)
+        .with_try_parse_dates(true)
         .finish()
         .expect("DF read error");
     for c in df.get_columns() {
@@ -251,7 +251,7 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     let mut expected_df = CsvReader::new(file)
         .infer_schema(None)
         .has_header(true)
-        .with_parse_dates(true)
+        .with_try_parse_dates(true)
         .finish()
         .expect("DF read error");
     for c in df.get_columns() {

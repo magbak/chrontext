@@ -12,6 +12,7 @@ use oxrdf::Variable;
 use polars::prelude::{IntoLazy};
 use polars_core::prelude::{JoinType, UniqueKeepStrategy};
 use polars_core::series::Series;
+use polars::prelude::DataFrameJoinOps;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use crate::combiner::solution_mapping::SolutionMappings;
 
@@ -94,7 +95,7 @@ impl TimeSeriesQueryPrepper {
         let mut df = solution_mappings.mappings.clone().collect().unwrap()
             .select(by_names.as_slice())
             .unwrap()
-            .unique(Some(by_names.as_slice()), UniqueKeepStrategy::First)
+            .unique(Some(by_names.as_slice()), UniqueKeepStrategy::First, None)
             .unwrap();
         let mut series = Series::from_iter(0..(df.height() as i64));
         series.rename(&grouping_col);

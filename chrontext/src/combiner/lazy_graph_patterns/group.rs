@@ -32,7 +32,6 @@ impl Combiner {
         let by: Vec<Expr> = variables.iter().map(|v| col(v.as_str())).collect();
 
         let mut aggregate_expressions = vec![];
-        let mut aggregate_inner_contexts = vec![];
         for i in 0..aggregates.len() {
             let aggregate_context = context.extension_with(PathEntry::GroupAggregation(i as u16));
             let (v, a) = aggregates.get(i).unwrap();
@@ -45,21 +44,12 @@ impl Combiner {
                 ).await?;
             output_solution_mappings = aggregate_solution_mappings;
             aggregate_expressions.push(expr);
-            if let Some(aggregate_inner_context) = used_context {
-                aggregate_inner_contexts.push(aggregate_inner_context);
-            }
         }
         let SolutionMappings { mut mappings, mut columns, datatypes } = output_solution_mappings;
         let grouped_mappings = mappings.groupby(by.as_slice());
 
         mappings = grouped_mappings
-            .agg(aggregate_expressions.as_slice())
-            .drop_columns(
-                aggregate_inner_contexts
-                    .iter()
-                    .map(|x| x.as_str())
-                    .collect::<Vec<&str>>(),
-            );
+            .agg(aggregate_expressions.as_slice());
         columns.clear();
         for v in variables {
             columns.insert(v.as_str().to_string());

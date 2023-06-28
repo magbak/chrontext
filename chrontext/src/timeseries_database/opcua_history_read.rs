@@ -377,7 +377,7 @@ fn history_data_to_series_tuple(hd: HistoryData) -> (Series, Series) {
         }
     }
     let timestamps = Series::new("timestamp", ts_value_vec.as_slice());
-    let values = Series::from_any_values("value", any_value_vec.as_slice()).unwrap();
+    let values = Series::from_any_values("value", any_value_vec.as_slice(), false).unwrap();
     (timestamps, values)
 }
 

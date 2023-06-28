@@ -248,7 +248,7 @@ fn any_to_ground_term(any: AnyValue, datatype: &NamedNode, datatype_nnref:&Named
         AnyValue::Time(_) => {
             todo!("No support for time yet")
         }
-        AnyValue::Categorical(_, _) => {
+        AnyValue::Categorical(..) => {
             todo!("No support for categorical yet")
         }
         AnyValue::List(_) => {

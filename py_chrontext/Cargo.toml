@@ -11,11 +11,10 @@ dsl = {path="../dsl"}
 chrontext = {path="../chrontext"}
 arrow_python_utils = {path="../arrow_python_utils"}
 thiserror="1.0.31"
-polars-core = {version="0.24.3"}
+polars-core = {version="0.30.0"}
 oxrdf = "0.1.0"
 spargebra = "0.2.0"
 simple-error = "0.2.3"
-tokio="1.20.0"
 env_logger = "0.9.0"
 log="0.4.17"
 

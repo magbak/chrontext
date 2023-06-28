@@ -352,7 +352,7 @@ async fn test_simple_hybrid_query(
     let expected_df = CsvReader::new(file)
         .infer_schema(None)
         .has_header(true)
-        .with_parse_dates(true)
+        .with_try_parse_dates(true)
         .finish()
         .expect("DF read error");
     assert_eq!(expected_df, df);

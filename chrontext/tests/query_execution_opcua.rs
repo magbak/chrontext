@@ -72,7 +72,7 @@ fn frames(testdata_path: PathBuf) -> HashMap<String, DataFrame> {
         let df = CsvReader::new(file)
             .infer_schema(None)
             .has_header(true)
-            .with_parse_dates(true)
+            .with_try_parse_dates(true)
             .finish()
             .expect("DF read error");
         frames.insert(t.to_string(), df);
@@ -177,7 +177,7 @@ fn test_basic_query(
     let mut expected_df = CsvReader::new(file)
         .infer_schema(None)
         .has_header(true)
-        .with_parse_dates(true)
+        .with_try_parse_dates(true)
         .finish()
         .expect("DF read error");
     expected_df
@@ -239,7 +239,7 @@ fn test_basic_no_end_time_query(
     let mut expected_df = CsvReader::new(file)
         .infer_schema(None)
         .has_header(true)
-        .with_parse_dates(true)
+        .with_try_parse_dates(true)
         .finish()
         .expect("DF read error");
     expected_df
@@ -313,7 +313,7 @@ fn test_pushdown_group_by_five_second_hybrid_query(
     let mut expected_df = CsvReader::new(file)
         .infer_schema(None)
         .has_header(true)
-        .with_parse_dates(true)
+        .with_try_parse_dates(true)
         .finish()
         .expect("DF read error");
     expected_df

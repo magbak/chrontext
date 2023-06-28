@@ -15,6 +15,7 @@ use polars_core::prelude::JoinType;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
+use polars::prelude::DataFrameJoinOps;
 
 pub struct InMemoryTimeseriesDatabase {
     pub frames: HashMap<String, DataFrame>,
