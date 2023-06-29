@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 pyo3 = {version = "0.16.5", features = ["extension-module", "auto-initialize"]}
-dsl = {path="../dsl"}
 chrontext = {path="../chrontext"}
 arrow_python_utils = {path="../arrow_python_utils"}
 thiserror="1.0.31"
