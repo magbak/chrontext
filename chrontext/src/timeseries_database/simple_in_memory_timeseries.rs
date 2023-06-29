@@ -165,7 +165,6 @@ impl InMemoryTimeseriesDatabase {
         let mut out_lf = df.lazy();
 
         let mut aggregation_exprs = vec![];
-        let mut aggregate_inner_contexts = vec![];
         let mut combiner = Combiner::new(
             "".to_string(),
             all_pushdowns(),
@@ -178,7 +177,7 @@ impl InMemoryTimeseriesDatabase {
         let mut solution_mappings = SolutionMappings::new(out_lf, columns, HashMap::new());
         for i in 0..grouped.aggregations.len() {
             let (v, agg) = grouped.aggregations.get(i).unwrap();
-            let (new_solution_mappings, agg_expr, used_context) = combiner
+            let (new_solution_mappings, agg_expr, _) = combiner
                 .sparql_aggregate_expression_as_lazy_column_and_expression(
                     v,
                     agg,
@@ -190,9 +189,6 @@ impl InMemoryTimeseriesDatabase {
                 .await?;
             solution_mappings = new_solution_mappings;
             aggregation_exprs.push(agg_expr);
-            if let Some(inner_context) = used_context {
-                aggregate_inner_contexts.push(inner_context);
-            }
         }
         let mut groupby = vec![col(grouped.tsq.get_groupby_column().unwrap())];
         let tsfuncs = grouped.tsq.get_timeseries_functions(&grouped.context);
@@ -206,12 +202,7 @@ impl InMemoryTimeseriesDatabase {
         }
 
         let grouped_lf = solution_mappings.mappings.groupby(groupby);
-        out_lf = grouped_lf.agg(aggregation_exprs.as_slice()).drop_columns(
-            aggregate_inner_contexts
-                .iter()
-                .map(|c| c.as_str())
-                .collect::<Vec<&str>>(),
-        );
+        out_lf = grouped_lf.agg(aggregation_exprs.as_slice());
 
         let collected = out_lf.collect()?;
         Ok(collected)
