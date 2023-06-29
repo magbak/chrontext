@@ -19,8 +19,6 @@ use tokio::runtime::{Builder, Runtime};
 pub struct Engine {
     engine: Option<RustEngine>,
     endpoint: String,
-    connective_mapping: Option<ConnectiveMapping>,
-    name_predicate: Option<String>,
 }
 
 #[pymethods]
@@ -30,8 +28,6 @@ impl Engine {
         Box::new(Engine {
             engine: None,
             endpoint: endpoint.to_string(),
-            connective_mapping: None,
-            name_predicate: None,
         })
     }
 
@@ -103,41 +99,8 @@ impl Engine {
             Err(err) => Err(PyErr::from(PyQueryError::QueryExecutionError(err))),
         }
     }
-
-    pub fn name_predicate(&mut self, name_predicate: &str) -> PyResult<()> {
-        self.name_predicate = Some(name_predicate.into());
-        Ok(())
-    }
-
-    pub fn connective_mapping(&mut self, map: HashMap<String, String>) -> PyResult<()> {
-        self.connective_mapping = Some(ConnectiveMapping { map });
-        Ok(())
-    }
 }
 
-fn type_name_template(predicate: &str) -> Vec<TriplePattern> {
-    let type_variable = Variable::new_unchecked("type_var");
-    let type_triple = TriplePattern {
-        subject: TermPattern::Variable(Variable::new_unchecked(REPLACE_VARIABLE_NAME)),
-        predicate: NamedNodePattern::NamedNode(NamedNode::from(rdf::TYPE)),
-        object: TermPattern::Variable(type_variable.clone()),
-    };
-    let type_name_triple = TriplePattern {
-        subject: TermPattern::Variable(type_variable),
-        predicate: NamedNodePattern::NamedNode(NamedNode::new(predicate).unwrap()),
-        object: TermPattern::Literal(Literal::new_typed_literal(REPLACE_STR_LITERAL, xsd::STRING)),
-    };
-    vec![type_triple, type_name_triple]
-}
-
-fn name_template(predicate: &str) -> Vec<TriplePattern> {
-    let name_triple = TriplePattern {
-        subject: TermPattern::Variable(Variable::new_unchecked(REPLACE_VARIABLE_NAME)),
-        predicate: NamedNodePattern::NamedNode(NamedNode::new_unchecked(predicate)),
-        object: TermPattern::Literal(Literal::new_typed_literal(REPLACE_STR_LITERAL, xsd::STRING)),
-    };
-    vec![name_triple]
-}
 
 #[pyclass]
 #[derive(Clone)]
