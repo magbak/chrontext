@@ -4,7 +4,7 @@ version = "0.2.3"
 edition = "2021"
 
 [dependencies]
-polars = {version="0.30.0", features=["simd", "lazy", "concat_str", "random", "unique_counts", "groupby_list", "list_eval", "dtype-datetime", "abs", "round_series", "is_in", "cum_agg", "dtype-categorical"] }
+polars = {version="0.30.0", features=["simd", "lazy", "concat_str", "random", "unique_counts", "groupby_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full"] }
 tokio = {version="1.18.2", features=["rt-multi-thread", "rt"]}
 log = "0.4.17"
 spargebra = "0.2.0"
