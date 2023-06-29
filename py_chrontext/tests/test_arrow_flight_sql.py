@@ -5,6 +5,8 @@ from SPARQLWrapper import SPARQLWrapper, POST, JSON
 
 from chrontext import Engine, ArrowFlightSQLDatabase, TimeSeriesTable
 import polars as pl
+from polars.testing import assert_frame_equal
+
 
 OXIGRAPH_UPDATE_ENDPOINT = "http://127.0.0.1:7878/update"
 OXIGRAPH_QUERY_ENDPOINT = "http://127.0.0.1:7878/query"
@@ -54,4 +56,4 @@ def test_simple_query(dremio_testdata, oxigraph_testdata):
     """)
     expected_csv = TESTDATA_PATH / "expected_simple_query.csv"
     expected_df = pl.read_csv(expected_csv, try_parse_dates=True)
-    pl.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+    assert_frame_equal(df, expected_df, check_dtype=False)
