@@ -62,7 +62,5 @@ From the latest [release](https://github.com/magbak/chrontext/releases), copy th
 pip install https://github.com/magbak/chrontext/releases/download/v0.2.3/chrontext-0.2.3-cp310-cp310-manylinux_2_31_x86_64.whl
 ```
 
-## Domain specific language
-There is also a customizable query language for accessing time series data using simple generalized paths such as those found in the [Reference Designation System](https://www.iso.org/standard/82229.html) or in [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) information models. The DSL is parsed with [nom](https://docs.rs/nom/latest/nom/) and translated to SPARQL.
-
+## License
 All code is licensed to [Prediktor AS](https://www.prediktor.com/) under the Apache 2.0 license unless otherwise noted, and has been financed by [The Research Council of Norway](https://www.forskningsradet.no/en/) (grant no. 316656) and [Prediktor AS](https://www.prediktor.com/) as part of a PhD Degree.  
