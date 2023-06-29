@@ -110,7 +110,7 @@ def test_simplified_opcua_case(opcua_server, oxigraph_testdata):
         """)
     expected_csv = TESTDATA_PATH / "expected_simplified_opcua_case.csv"
     #df.write_csv(expected_csv)
-    expected_df = pl.read_csv(expected_csv, parse_dates=True)
+    expected_df = pl.read_csv(expected_csv, try_parse_dates=True)
     expected_df = expected_df.sort(["w", "s", "mytype", "t", "v"])
     df = df.sort(["w", "s", "mytype", "t", "v"])
     pl.testing.assert_frame_equal(df, expected_df, check_dtype=False)

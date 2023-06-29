@@ -12,8 +12,6 @@ pub enum PyQueryError {
     DatatypeIRIParseError(#[from] IriParseError),
     #[error(transparent)]
     QueryExecutionError(Box<dyn std::error::Error>),
-    #[error("DSL parsing error")]
-    DSLParsingError,
     #[error("Missing time series database")]
     MissingTimeSeriesDatabaseError,
     #[error("Time series database already defined")]
@@ -32,9 +30,6 @@ impl std::convert::From<PyQueryError> for PyErr {
             PyQueryError::QueryExecutionError(err) => {
                 QueryExecutionError::new_err(format!("{}", err))
             }
-            PyQueryError::DSLParsingError => {
-                DSLParsingError::new_err("")
-            }
             PyQueryError::MissingTimeSeriesDatabaseError => {
                 MissingTimeSeriesDatabaseError::new_err("")
             }
@@ -48,6 +43,5 @@ impl std::convert::From<PyQueryError> for PyErr {
 create_exception!(exceptions, ArrowFlightSQLError, PyException);
 create_exception!(exceptions, DatatypeIRIParseError, PyException);
 create_exception!(exceptions, QueryExecutionError, PyException);
-create_exception!(exceptions, DSLParsingError, PyException);
 create_exception!(exceptions, MissingTimeSeriesDatabaseError, PyException);
 create_exception!(exceptions, TimeSeriesDatabaseAlreadyDefinedError, PyException);

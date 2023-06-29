@@ -2,10 +2,6 @@ pub mod errors;
 
 use crate::errors::PyQueryError;
 use arrow_python_utils::to_python::to_py_df;
-use dsl::connective_mapping::ConnectiveMapping;
-use dsl::costants::{REPLACE_STR_LITERAL, REPLACE_VARIABLE_NAME};
-use dsl::parser::ts_query;
-use dsl::translator::Translator;
 use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase as RustArrowFlightSQLDatabase;
 use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead as RustOPCUAHistoryRead;
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeSeriesTable as RustTimeSeriesTable;
@@ -116,20 +112,6 @@ impl Engine {
     pub fn connective_mapping(&mut self, map: HashMap<String, String>) -> PyResult<()> {
         self.connective_mapping = Some(ConnectiveMapping { map });
         Ok(())
-    }
-
-    pub fn execute_dsl_query(&mut self, py: Python<'_>, query: &str) -> PyResult<PyObject> {
-        let (_, parsed) = ts_query(query).map_err(|_| PyQueryError::DSLParsingError)?;
-        let use_name_template = name_template(self.name_predicate.as_ref().unwrap());
-        let use_type_name_template = type_name_template(self.name_predicate.as_ref().unwrap());
-        let mut translator = Translator::new(
-            use_name_template,
-            use_type_name_template,
-            self.connective_mapping.as_ref().unwrap().clone(),
-        );
-        let sparql = translator.translate(&parsed).to_string();
-        println!("Q: {}", sparql);
-        self.execute_hybrid_query(py, &sparql)
     }
 }
 
