@@ -295,7 +295,7 @@ fn test_pushdown_group_by_five_second_hybrid_query(
     let mut df = runtime
         .block_on(engine.execute_hybrid_query(query))
         .expect("Hybrid error");
-    df = df.sort(vec!["w", "datetime_seconds"], false).unwrap();
+    df = df.sort(vec!["w", "datetime_seconds"], false, false).unwrap();
     df.with_column(
             df
                 .column("datetime_seconds")
@@ -329,7 +329,7 @@ fn test_pushdown_group_by_five_second_hybrid_query(
         )
         .unwrap();
     expected_df = expected_df
-        .sort(vec!["w", "datetime_seconds"], false)
+        .sort(vec!["w", "datetime_seconds"], false, false)
         .unwrap();
 
     assert_eq!(expected_df, df);
@@ -373,7 +373,7 @@ fn test_no_pushdown_because_of_filter_query(
     let mut df = runtime
         .block_on(engine.execute_hybrid_query(query))
         .expect("Hybrid error");
-    df = df.sort(vec!["w", "datetime_seconds"], false).unwrap();
+    df = df.sort(vec!["w", "datetime_seconds"], false, false).unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_no_pushdown_because_of_filter_query.csv");
     let file = File::open(file_path.as_path()).expect("Read file problem");
@@ -383,7 +383,7 @@ fn test_no_pushdown_because_of_filter_query(
         .finish()
         .expect("DF read error");
     expected_df = expected_df
-        .sort(vec!["w", "datetime_seconds"], false)
+        .sort(vec!["w", "datetime_seconds"], false, false)
         .unwrap();
 
     assert_eq!(expected_df, df);
