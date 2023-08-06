@@ -137,6 +137,7 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
                 "minute_10",
             ],
             false,
+            false,
         )
         .unwrap();
 
@@ -241,7 +242,7 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
                 "minute_10",
             ],
             false,
-        )
+        false,)
         .unwrap();
 
     let mut file_path = testdata_path.clone();
