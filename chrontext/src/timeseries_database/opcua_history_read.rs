@@ -13,7 +13,7 @@ use opcua_client::prelude::{
 use oxrdf::vocab::xsd;
 use oxrdf::{Literal, Variable};
 use polars::export::chrono::{DateTime as ChronoDateTime, Duration, NaiveDateTime, TimeZone, Utc};
-use polars::prelude::{concat, IntoLazy};
+use polars::prelude::{concat, IntoLazy, UnionArgs};
 use polars_core::frame::DataFrame;
 use polars_core::prelude::{AnyValue, DataType, NamedFrom};
 use polars_core::series::Series;
@@ -275,7 +275,7 @@ impl TimeSeriesQueryable for OPCUAHistoryRead {
                 dfs.push(DataFrame::new(value_vec).unwrap().lazy())
             }
         }
-        let df = concat(dfs, true, true).unwrap().collect().unwrap();
+        let df = concat(dfs, UnionArgs::default()).unwrap().collect().unwrap();
         Ok(df)
     }
 

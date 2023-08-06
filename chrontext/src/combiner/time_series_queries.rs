@@ -7,7 +7,7 @@ use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
 use polars::prelude::{col, Expr, IntoLazy};
-use polars_core::prelude::{DataType, JoinType};
+use polars_core::prelude::{DataType, JoinArgs, JoinType};
 use polars::enable_string_cache;
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
@@ -86,11 +86,11 @@ impl Combiner {
 
         let on_reverse_false = vec![false].repeat(on_cols.len());
         ts_lf = ts_lf
-            .sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true);
+            .sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true, false);
         solution_mappings.mappings =
             solution_mappings
                 .mappings
-                .sort_by_exprs(on_cols.as_slice(), on_reverse_false, true);
+                .sort_by_exprs(on_cols.as_slice(), on_reverse_false, true, false);
 
         solution_mappings.mappings = solution_mappings
             .mappings
@@ -98,7 +98,7 @@ impl Combiner {
                 ts_lf,
                 on_cols.as_slice(),
                 on_cols.as_slice(),
-                JoinType::Inner,
+                JoinArgs::new(JoinType::Inner),
             )
             .drop_columns(drop_cols.as_slice());
         for c in &drop_cols {

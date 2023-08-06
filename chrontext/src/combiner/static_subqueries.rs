@@ -10,7 +10,7 @@ use oxrdf::vocab::xsd;
 use oxrdf::{Literal, NamedNode, NamedNodeRef, Variable};
 use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::datatypes::AnyValue;
-use polars_core::prelude::{JoinType, UniqueKeepStrategy};
+use polars_core::prelude::{JoinArgs, JoinType, UniqueKeepStrategy};
 use polars_core::series::{ SeriesIter};
 use spargebra::algebra::GraphPattern;
 use spargebra::term::GroundTerm;
@@ -65,7 +65,7 @@ impl Combiner {
             } else {
                 JoinType::Inner
             };
-            lf = lf.join(input_lf, on_cols.as_slice(), on_cols.as_slice(), join_type);
+            lf = lf.join(input_lf, on_cols.as_slice(), on_cols.as_slice(), JoinArgs::new(join_type));
 
             columns.extend(input_columns);
             datatypes.extend(input_datatypes);

@@ -10,8 +10,8 @@ use crate::timeseries_query::{
 use async_recursion::async_recursion;
 use async_trait::async_trait;
 use polars::frame::DataFrame;
-use polars::prelude::{col, concat, lit, IntoLazy};
-use polars_core::prelude::JoinType;
+use polars::prelude::{col, concat, lit, IntoLazy, UnionArgs};
+use polars_core::prelude::{JoinArgs, JoinType};
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
@@ -49,8 +49,8 @@ impl InMemoryTimeseriesDatabase {
                         df,
                         [btsq.identifier_variable.as_ref().unwrap().as_str()],
                         [btsq.identifier_variable.as_ref().unwrap().as_str()],
-                        JoinType::Inner,
-                        None,
+                        JoinArgs::new(JoinType::Inner),
+
                     )
                     .unwrap();
                 basic_df = basic_df
@@ -115,7 +115,7 @@ impl InMemoryTimeseriesDatabase {
                 panic!("Missing frame");
             }
         }
-        let out_lf = concat(lfs, true, true)?;
+        let out_lf = concat(lfs, UnionArgs::default())?;
         Ok(out_lf.collect().unwrap())
     }
 
@@ -233,7 +233,7 @@ impl InMemoryTimeseriesDatabase {
             let mut first_df = dfs.remove(0);
             for df in dfs.into_iter() {
                 first_df =
-                    first_df.join(&df, on.as_slice(), on.as_slice(), JoinType::Inner, None)?;
+                    first_df.join(&df, on.as_slice(), on.as_slice(), JoinArgs::new(JoinType::Inner))?;
             }
             Ok(first_df)
         } else {

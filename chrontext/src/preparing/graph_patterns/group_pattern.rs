@@ -10,7 +10,7 @@ use crate::pushdown_setting::PushdownSetting;
 use crate::timeseries_query::{GroupedTimeSeriesQuery, TimeSeriesQuery};
 use oxrdf::Variable;
 use polars::prelude::{IntoLazy};
-use polars_core::prelude::{JoinType, UniqueKeepStrategy};
+use polars_core::prelude::{JoinArgs, JoinType, UniqueKeepStrategy};
 use polars_core::series::Series;
 use polars::prelude::DataFrameJoinOps;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
@@ -105,8 +105,7 @@ impl TimeSeriesQueryPrepper {
                 &df,
                 by_names.as_slice(),
                 by_names.as_slice(),
-                JoinType::Inner,
-                None,
+                JoinArgs::new(JoinType::Inner),
             )
             .unwrap().lazy();
         grouping_col
